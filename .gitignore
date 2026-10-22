@@ -1,7 +1,25 @@
+# Dependencies
 node_modules/
+*/node_modules/
+
+# Production build outputs
 dist/
+*/dist/
+
+# Environment configurations
 .env
 .env.*
 !.env.example
+*/.env
+*/.env.*
+!*/.env.example
+
+# OS metadata
 .DS_Store
+*/.DS_Store
+Thumbs.db
+
+# Test coverage & logs
 coverage/
+*.log
+npm-debug.log*

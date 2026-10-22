@@ -6,14 +6,35 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    try {
+      return Boolean(localStorage.getItem(TOKEN_KEY));
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    if (!token) { setLoading(false); return; }
+    let token = null;
+    try {
+      token = localStorage.getItem(TOKEN_KEY);
+    } catch {
+      setLoading(false);
+      return;
+    }
+
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
     apiRequest('/auth/me', { token })
       .then(({ user }) => setSession({ token, user }))
-      .catch(() => localStorage.removeItem(TOKEN_KEY))
+      .catch(() => {
+        try {
+          localStorage.removeItem(TOKEN_KEY);
+        } catch {}
+      })
       .finally(() => setLoading(false));
   }, []);
 

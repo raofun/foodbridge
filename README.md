@@ -2,7 +2,6 @@
 
 FoodBridge coordinates surplus food donations and pickup. This repository is the shared codebase; develop each module on a feature branch and integrate it through a pull request.
 
-For the Antigravity/Codex project instructions and current continuation point, read [`GEMINI.md`](GEMINI.md), [`AGENTS.md`](AGENTS.md), and [`docs/PROJECT_HANDOFF.md`](docs/PROJECT_HANDOFF.md). The reusable development workflow is in [`.agents/skills/foodbridge-development/SKILL.md`](.agents/skills/foodbridge-development/SKILL.md).
 
 ## Module 1 implemented
 

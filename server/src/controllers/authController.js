@@ -3,7 +3,6 @@ import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
 
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const allowedRoles = ['donor', 'receiver', 'volunteer'];
 
 function createSession(user) {
@@ -47,18 +46,36 @@ export async function login(req, res, next) {
 
 export async function googleLogin(req, res, next) {
   try {
-    if (!process.env.GOOGLE_CLIENT_ID) return res.status(503).json({ message: 'Google sign-in is not configured yet.' });
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) return res.status(503).json({ message: 'Google sign-in is not configured yet. Set GOOGLE_CLIENT_ID in server/.env.' });
     const { credential, role } = req.body;
     if (!credential) return res.status(400).json({ message: 'Google credential is required.' });
-    const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: process.env.GOOGLE_CLIENT_ID });
+    const googleClient = new OAuth2Client(clientId);
+    const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: clientId });
     const profile = ticket.getPayload();
     if (!profile?.email || !profile.email_verified) return res.status(401).json({ message: 'Google could not verify this email address.' });
 
     let user = await User.findOne({ email: profile.email.toLowerCase() });
     if (!user) {
-      if (!allowedRoles.includes(role)) return res.status(400).json({ message: 'Choose your account role to finish signing up with Google.' });
-      user = await User.create({ name: profile.name || profile.email, email: profile.email.toLowerCase(), googleId: profile.sub, role });
+      // If role was not specified, prompt the user to pick their role
+      if (!role || !allowedRoles.includes(role)) {
+        return res.json({
+          isNewUser: true,
+          name: profile.name?.trim() || profile.email.split('@')[0],
+          email: profile.email.toLowerCase(),
+          credential,
+        });
+      }
+
+      // Role is present: create the new account
+      user = await User.create({
+        name: profile.name?.trim() || profile.email.split('@')[0],
+        email: profile.email.toLowerCase(),
+        googleId: profile.sub,
+        role,
+      });
     } else if (!user.googleId) {
+      // Existing user: link their Google ID
       user.googleId = profile.sub;
       await user.save();
     }

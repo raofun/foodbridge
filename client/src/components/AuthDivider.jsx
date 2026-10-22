@@ -1,3 +1,7 @@
-export default function AuthDivider() {
-  return <div className="separator"><span>or continue with</span></div>;
+export default function AuthDivider({ text = 'or continue with' }) {
+  return (
+    <div className="auth-micro-divider">
+      <span>{text}</span>
+    </div>
+  );
 }
