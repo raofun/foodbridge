@@ -1,0 +1,52 @@
+.auth-card.register-screen{width:min(100%,480px);max-height:calc(100vh - 64px);overflow:auto;padding:22px 8px;scrollbar-width:thin;scrollbar-color:#d7e2d6 transparent;animation:register-enter .6s cubic-bezier(.2,.75,.25,1) both}
+.register-heading .eyebrow{color:#548361;font-size:9px}
+.register-heading h2{font:800 clamp(27px,3vw,34px)/1.06 Manrope,sans-serif;letter-spacing:-1.7px;margin:9px 0 7px;color:#1f3c2d}
+.register-heading h2 em{font-family:Georgia,serif;font-weight:400;color:#43825b}
+.register-heading p{font-size:11px;line-height:1.55;color:#7c887f;margin:0}
+.register-switch{margin:16px 0 13px}
+.role-picker{border:0;padding:0;margin:0 0 12px;min-width:0}
+.role-picker legend{font-size:10px;color:#37483e;font-weight:700;margin-bottom:7px;padding:0}
+.role-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.role-option{position:relative;display:flex;min-width:0;align-items:flex-start;gap:7px;min-height:63px;padding:9px 8px;border:1px solid #e3e9e1;border-radius:10px;text-align:left;background:#fff;color:#425248;transition:transform .2s,border-color .2s,box-shadow .2s,background .2s}
+.role-option:hover{transform:translateY(-2px);border-color:#9cc6a3;box-shadow:0 7px 17px #24583b12}
+.role-option.selected{border-color:#55966a;background:linear-gradient(140deg,#f1f8ef,#fff);box-shadow:inset 0 0 0 1px #55966a30,0 5px 12px #24583b0b}
+.role-icon{display:grid;place-items:center;flex:0 0 24px;height:24px;border-radius:8px;background:#e8f2e8;color:#398252;font-size:14px}
+.role-copy{display:flex;flex-direction:column;gap:3px;min-width:0;padding-top:1px}
+.role-copy strong{font-size:9px;line-height:1.2;color:#294734}
+.role-copy small{font-size:8px;line-height:1.25;color:#87928a}
+.role-check{display:none;position:absolute;right:6px;top:6px;color:#328450;font-size:9px;font-weight:700}
+.role-option.selected .role-check{display:block}
+.register-field-grid{display:grid;grid-template-columns:1fr;gap:9px}
+.register-field{display:flex;flex-direction:column;gap:5px;font-size:10px;font-weight:700;color:#3c4d42}
+.register-field input{width:100%;height:37px;border:1px solid #dfe6de;border-radius:8px;padding:0 11px;background:#fff;color:#20342b;font:400 11px 'DM Sans',sans-serif;outline:none;transition:border-color .2s,box-shadow .2s}
+.register-field input::placeholder{color:#a1aaa2}
+.register-field input:focus{border-color:#73a982;box-shadow:0 0 0 3px #18734f12}
+.password-control{position:relative;display:block}
+.password-control input{padding-right:52px}
+.password-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:transparent;padding:5px;color:#45835a;font-size:9px;font-weight:700}
+.password-hint{display:flex;align-items:center;gap:8px}
+.password-track{height:3px;flex:1;border-radius:3px;background:#e8eee7;overflow:hidden}
+.password-track span{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#9acb79,#288053);transition:width .25s}
+.password-hint small{font-size:8px;font-weight:500;color:#849087}
+.register-error{margin:0;padding:8px 10px;font-size:10px}
+.register-submit{display:flex;justify-content:space-between;width:100%;margin-top:1px;padding:11px 14px;border-radius:9px;font-size:11px}
+.submit-arrow{display:grid;place-items:center;width:21px;height:21px;border-radius:50%;background:#ffffff20;font-size:13px;transition:transform .2s}
+.register-submit:hover .submit-arrow{transform:translate(2px,-2px)}
+.register-screen .separator{margin:11px 0;font-size:9px}
+.register-google{display:flex;justify-content:center;min-height:40px}
+.register-google .google-button{min-height:40px}
+.register-google .google-g{font-size:14px}
+.register-consent{text-align:center;margin:7px 0 0;color:#9ba39c;font-size:8px;line-height:1.4}
+.register-impact{margin-top:13px;padding:9px 12px 8px;border:1px solid #e7ede5;border-radius:9px;background:linear-gradient(105deg,#f5f8f1,#fffdf8)}
+.impact-title{display:flex;justify-content:space-between;color:#91a094;font-size:7px;font-weight:700;letter-spacing:1.2px}
+.impact-sparkle{color:#e6a458;font-size:11px;animation:impact-turn 8s linear infinite}
+.impact-flow{display:flex;align-items:center;justify-content:space-between;margin-top:6px;color:#3f6249;font-size:9px;font-weight:700}
+.impact-flow span{display:flex;align-items:center;gap:5px}
+.impact-flow i{display:grid;place-items:center;width:17px;height:17px;border-radius:50%;background:#e7f1e5;color:#61906b;font-size:7px;font-style:normal}
+.impact-flow b{color:#d8a55e;font-size:12px;letter-spacing:2px}
+@keyframes register-enter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes impact-turn{to{transform:rotate(360deg)}}
+@media(max-width:680px){.auth-card.register-screen{max-height:none;overflow:visible;padding:8px 0 20px}.register-heading h2{font-size:30px}.role-options{gap:6px}.role-option{min-height:60px;padding:8px 6px;gap:5px}.role-icon{flex-basis:21px;height:21px;font-size:12px}.role-copy small{font-size:7px}}
+@media(prefers-reduced-motion:reduce){.register-screen,.impact-sparkle{animation:none}.role-option,.password-track span,.submit-arrow{transition:none}}
+
+.auth-switch.register-switch span{display:flex;flex:1;justify-content:center;border-radius:8px;background:#fff;padding:10px;color:#214c37;box-shadow:0 1px 4px #20342b13;font-size:12px;font-weight:600}.register-screen[aria-busy=true] .register-google{pointer-events:none;opacity:.62}
