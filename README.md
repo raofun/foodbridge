@@ -7,9 +7,9 @@ FoodBridge coordinates surplus food donations and pickup. This repository is the
 - Email registration with role selection (donor, receiver, volunteer)
 - Email and password login, signed sessions, and current-user endpoint
 - Google sign-in UI and server-side credential verification (requires OAuth configuration)
-- Donor listing creation with food description, optional photo URL, quantity, portion unit, pickup location, and pickup opening/closing times
+- Three-step donor listing flow: food listing (FR03), preparation and storage information (FR04), and pickup scheduling (FR05)
 - Donor dashboard listing history
-- Donor-only listing API with list, update, and delete operations
+- Donor-only listing API saves a draft at FR03 and publishes it after FR04 and FR05 are complete
 
 ## Stack and folders
 
@@ -17,7 +17,15 @@ FoodBridge coordinates surplus food donations and pickup. This repository is the
 - `server/`: Express REST API, Mongoose models, authentication middleware
 - MongoDB stores accounts and listings
 
-Client screens are separate files under `client/src/pages/`: `RegisterPage.jsx`, `LoginPage.jsx`, `DashboardPage.jsx`, `CreateListingPage.jsx`, and `MyListingsPage.jsx`. Shared authentication UI, navigation, API calls, and session state live under `components/`, `services/`, and `context/` respectively. `App.jsx` maps URLs to pages; `main.jsx` starts React and the router.
+Each Module 1 feature has its own page under `client/src/pages/`: `RegisterPage.jsx` (FR01), `LoginPage.jsx` (FR02), `FoodListingPage.jsx` (FR03), `FoodInformationPage.jsx` (FR04), and `PickupSchedulePage.jsx` (FR05). `DashboardPage.jsx` and `MyListingsPage.jsx` provide dashboard utilities. Shared authentication UI, navigation, API calls, and session state live under `components/`, `services/`, and `context/` respectively. `App.jsx` maps URLs to pages; `main.jsx` starts React and the router.
+
+### Module 1 ownership
+
+- **Raofun:** registration (FR01), food listing (FR03), and food information (FR04).
+- **Sahmina:** login (FR02) and pickup scheduling (FR05).
+- **Shared integration:** Google sign-in is used on both account screens. Coordinate changes to shared auth files, `App.jsx`, the listing model, and the listing router so only one person edits each shared file at a time.
+
+The donor listing flow is connected as three API-backed steps. FR03 creates a draft listing; FR04 saves preparation, condition, and storage information; FR05 adds the pickup window and changes the listing to available. The dashboard shows drafts and lets the donor continue setup.
 
 ## Run locally
 
@@ -41,9 +49,11 @@ Photo is currently an optional public image URL. A persistent image service can 
 | `POST` | `/api/auth/login` | Sign in with email/password |
 | `POST` | `/api/auth/google` | Verify Google credential and sign in/register |
 | `GET` | `/api/auth/me` | Read signed-in user |
-| `POST` | `/api/listings` | Create donor listing |
+| `POST` | `/api/listings` | Create draft food listing (FR03) |
 | `GET` | `/api/listings/mine` | List signed-in donor's listings |
-| `PATCH` | `/api/listings/:id` | Update own listing |
+| `GET` | `/api/listings/:id` | Read own listing to continue its setup |
+| `PATCH` | `/api/listings/:id/information` | Save preparation and storage information (FR04) |
+| `PATCH` | `/api/listings/:id/pickup` | Save pickup schedule and publish listing (FR05) |
 | `DELETE` | `/api/listings/:id` | Delete own listing |
 
 Protected endpoints use `Authorization: Bearer <token>`. API routes, controllers, models, and middleware are separated under `server/src/`.
