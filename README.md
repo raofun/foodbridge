@@ -17,6 +17,8 @@ FoodBridge coordinates surplus food donations and pickup. This repository is the
 - `server/`: Express REST API, Mongoose models, authentication middleware
 - MongoDB stores accounts and listings
 
+Client screens are separate files under `client/src/pages/`: `RegisterPage.jsx`, `LoginPage.jsx`, `DashboardPage.jsx`, `CreateListingPage.jsx`, and `MyListingsPage.jsx`. Shared authentication UI, navigation, API calls, and session state live under `components/`, `services/`, and `context/` respectively. `App.jsx` maps URLs to pages; `main.jsx` starts React and the router.
+
 ## Run locally
 
 Requirements: Node.js and a MongoDB database. A local MongoDB instance can be used during development.
