@@ -10,7 +10,31 @@ import listingRoutes from './routes/listings.js';
 const app = express();
 
 // Security & Parsing Middleware
-app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173' }));
+const rawOrigin = process.env.CLIENT_ORIGIN || '';
+const configuredOrigins = rawOrigin.split(',').map(o => o.trim().replace(/\/+$/, '')).filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+
+    const cleanOrigin = origin.replace(/\/+$/, '');
+
+    const isAllowed =
+      configuredOrigins.length === 0 ||
+      configuredOrigins.includes('*') ||
+      configuredOrigins.includes(cleanOrigin) ||
+      cleanOrigin.endsWith('.vercel.app') ||
+      cleanOrigin.includes('localhost') ||
+      cleanOrigin.includes('127.0.0.1');
+
+    if (isAllowed) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: '1mb' }));
 
 // Health Check
