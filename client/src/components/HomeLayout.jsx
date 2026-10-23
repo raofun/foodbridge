@@ -68,7 +68,7 @@ export default function HomeLayout() {
     const getPageTitle = () => {
         if (location.pathname === '/') return 'Community Feed';
         if (location.pathname.startsWith('/listings/new') || location.pathname.startsWith('/create-listing')) return 'Create Listing';
-        if (location.pathname.includes('/information')) return 'Food Information';
+        if (location.pathname.includes('/information') || location.pathname.includes('/food-information')) return 'Food Information';
         if (location.pathname.includes('/pickup')) return 'Pickup Schedule';
         if (location.pathname.startsWith('/listings/mine')) return 'My Listings';
         return 'FoodBridge Network';

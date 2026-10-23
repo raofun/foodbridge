@@ -19,6 +19,31 @@ export async function saveFoodInformation(req, res, next) {
     if (useByAt && new Date(useByAt) <= new Date(preparedAt)) return res.status(400).json({ message: 'Use-by time must be after preparation time.' });
     if (safetyNotes && safetyNotes.length > 500) return res.status(400).json({ message: 'Safety notes must be 500 characters or fewer.' });
 
+    // Optionally update core food fields if provided in this step
+    if (req.body.foodName?.trim()) listing.foodName = req.body.foodName.trim();
+    if (req.body.category) listing.category = req.body.category;
+    if (req.body.description?.trim()) listing.description = req.body.description.trim();
+    if (req.body.quantity && Number(req.body.quantity) >= 1) listing.quantity = Number(req.body.quantity);
+    if (req.body.portionUnit?.trim()) listing.portionUnit = req.body.portionUnit.trim();
+    if (req.body.photoUrl !== undefined) {
+      if (req.body.photoUrl && !/^https?:\/\//i.test(req.body.photoUrl) && !/^data:image\//i.test(req.body.photoUrl)) {
+        return res.status(400).json({ message: 'Photo must be a valid image or URL.' });
+      }
+      listing.photoUrl = req.body.photoUrl.trim();
+    }
+
+    if (req.body.pickupDeadline || req.body.pickupClosesAt) {
+      const deadline = new Date(req.body.pickupDeadline || req.body.pickupClosesAt);
+      if (!Number.isFinite(deadline.getTime())) {
+        return res.status(400).json({ message: 'Enter a valid pickup deadline date and time.' });
+      }
+      if (deadline.getTime() <= Date.now()) {
+        return res.status(400).json({ message: 'Pickup deadline cannot be in the past.' });
+      }
+      listing.pickupDeadline = deadline;
+      listing.pickupClosesAt = deadline;
+    }
+
     listing.preparedAt = preparedAt;
     listing.storageDetails = storageDetails.trim();
     listing.foodCondition = foodCondition;

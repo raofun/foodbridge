@@ -74,6 +74,16 @@ export default function App() {
           }
         />
         <Route
+          path="food-information"
+          element={
+            <ProtectedRoute>
+              <Suspense fallback={<LoadingFallback />}>
+                <FoodInformationPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="listings/:listingId/pickup"
           element={
             <ProtectedRoute>

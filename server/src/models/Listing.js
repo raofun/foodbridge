@@ -7,7 +7,7 @@ const listingSchema = new mongoose.Schema({
   photoUrl: { type: String, trim: true, default: '' },
   quantity: { type: Number, required: true, min: 1 },
   portionUnit: { type: String, required: true, trim: true, maxlength: 40 },
-  category: { type: String, enum: ['meals', 'bakery', 'produce', 'other'], default: 'meals' },
+  category: { type: String, enum: ['meals', 'bakery', 'produce', 'fruits', 'dairy', 'packaged', 'beverages', 'other'], default: 'meals' },
   preparedAt: { type: Date },
   storageDetails: { type: String, trim: true, maxlength: 500 },
   foodCondition: { type: String, enum: ['fresh', 'refrigerated', 'frozen', 'shelf-stable'] },
@@ -16,6 +16,7 @@ const listingSchema = new mongoose.Schema({
   pickupLocation: { type: String, trim: true, maxlength: 300 },
   pickupOpensAt: { type: Date },
   pickupClosesAt: { type: Date },
+  pickupDeadline: { type: Date },
   status: { type: String, enum: ['draft', 'available', 'closed'], default: 'draft' },
 }, { timestamps: true });
 

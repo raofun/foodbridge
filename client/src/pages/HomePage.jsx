@@ -14,83 +14,44 @@ import {
 import { useAuth } from '../context/AuthContext.jsx';
 import './HomePage.css';
 
-function formatPickupWindow(opensAt, closesAt, status) {
-    const now = new Date();
-    const close = closesAt ? new Date(closesAt) : null;
-    const open = opensAt ? new Date(opensAt) : null;
-    const timeOpts = { hour: 'numeric', minute: '2-digit' };
+export function formatPickupDeadline(deadlineValue, status, currentTime = new Date()) {
+    const now = currentTime instanceof Date ? currentTime : new Date();
+    const deadline = deadlineValue ? new Date(deadlineValue) : null;
 
-    // 1. Check if expired (either status is closed or closesAt has passed)
-    const isExpired = status === 'closed' || (close && close < now);
-    if (isExpired) {
-        if (close) {
-            return {
-                text: `Expired · Closed at ${close.toLocaleTimeString([], timeOpts)}`,
-                isExpired: true,
-                badgeClass: 'expired',
-            };
-        }
+    if (!deadline || isNaN(deadline.getTime())) {
+        const isClosed = status === 'closed';
         return {
-            text: 'Expired · Window closed',
+            text: isClosed ? 'Pickup closed' : 'Flexible pickup window',
+            isExpired: isClosed,
+            badgeClass: isClosed ? 'expired' : 'flexible',
+        };
+    }
+
+    const isExpired = status === 'closed' || deadline.getTime() <= now.getTime();
+    if (isExpired) {
+        return {
+            text: 'Pickup closed',
             isExpired: true,
             badgeClass: 'expired',
         };
     }
 
-    // 2. Flexible window (no fixed timestamps)
-    if (!open && !close) {
-        return {
-            text: 'Flexible pickup window',
-            isExpired: false,
-            badgeClass: 'flexible',
-        };
-    }
-
-    if (!open && close) {
-        return {
-            text: `Flexible · Until ${close.toLocaleTimeString([], timeOpts)}`,
-            isExpired: false,
-            badgeClass: 'flexible',
-        };
-    }
-
-    // 3. Day prefix (Today, Tomorrow, or specific day)
-    const isToday = open.toDateString() === now.toDateString();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(now.getDate() + 1);
-    const isTomorrow = open.toDateString() === tomorrow.toDateString();
-
-    const dayPrefix = isToday
-        ? 'Today'
-        : isTomorrow
-        ? 'Tomorrow'
-        : open.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
-
-    if (close) {
-        const isSameDay = open.toDateString() === close.toDateString();
-        if (isSameDay) {
-            return {
-                text: `${dayPrefix} · ${open.toLocaleTimeString([], timeOpts)} – ${close.toLocaleTimeString([], timeOpts)}`,
-                isExpired: false,
-                badgeClass: 'standard',
-            };
-        }
-        const closeDayPrefix = close.toDateString() === tomorrow.toDateString()
-            ? 'Tomorrow'
-            : close.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
-        return {
-            text: `${dayPrefix} ${open.toLocaleTimeString([], timeOpts)} – ${closeDayPrefix} ${close.toLocaleTimeString([], timeOpts)}`,
-            isExpired: false,
-            badgeClass: 'standard',
-        };
-    }
+    // Format: "Pickup before 25 October, 2026, 7:00 PM"
+    const day = deadline.getDate();
+    const month = deadline.toLocaleString('en-US', { month: 'long' });
+    const year = deadline.getFullYear();
+    const time = deadline.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
     return {
-        text: `${dayPrefix} · from ${open.toLocaleTimeString([], timeOpts)}`,
+        text: `Pickup before ${day} ${month}, ${year}, ${time}`,
         isExpired: false,
         badgeClass: 'standard',
     };
 }
+
+// Keep backward-compatible formatPickupWindow alias
+export const formatPickupWindow = (opensAt, closesAt, status, currentTime) =>
+    formatPickupDeadline(closesAt, status, currentTime);
 
 export default function HomePage() {
     const { session } = useAuth();
@@ -98,21 +59,35 @@ export default function HomePage() {
     const { feedListings, feedLoading: loading, feedError: error, reloadFeed } = useOutletContext();
     const [activeCategory, setActiveCategory] = useState('all');
 
+    // Live clock reference updating regularly to keep pickup statuses accurate based on current time
+    const [currentTime, setCurrentTime] = useState(() => new Date());
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 10000);
+        return () => clearInterval(timer);
+    }, []);
+
     // Modal State
     const [selectedListing, setSelectedListing] = useState(null);
     const [modalType, setModalType] = useState(null);
 
     // Live active donations count (excluding expired/closed)
     const activeCount = useMemo(() => {
-        const now = new Date();
-        return feedListings.filter(item => item.status === 'available' && (!item.pickupClosesAt || new Date(item.pickupClosesAt) > now)).length;
-    }, [feedListings]);
+        return feedListings.filter(item => {
+            const deadline = item.pickupDeadline || item.pickupClosesAt;
+            const isDeadlinePassed = Boolean(deadline && new Date(deadline) <= currentTime);
+            return item.status === 'available' && !isDeadlinePassed;
+        }).length;
+    }, [feedListings, currentTime]);
 
-    // Filter listings based on active category pill and sort expired to the bottom
+    // Filter listings based on active category pill and sort expired/closed to the bottom
     const filteredListings = useMemo(() => {
-        const now = new Date();
         const isItemExpired = (item) => {
-            return item.status === 'closed' || (item.pickupClosesAt && new Date(item.pickupClosesAt) < now);
+            const deadline = item.pickupDeadline || item.pickupClosesAt;
+            const isDeadlinePassed = Boolean(deadline && new Date(deadline) <= currentTime);
+            return item.status === 'closed' || isDeadlinePassed;
         };
 
         const matching = feedListings.filter(item => {
@@ -127,18 +102,19 @@ export default function HomePage() {
             if (!aExpired && bExpired) return -1;
             return 0;
         });
-    }, [feedListings, activeCategory]);
+    }, [feedListings, activeCategory, currentTime]);
 
     const visibleAvailableCount = useMemo(() => {
-        const now = new Date();
-        return filteredListings.filter(item =>
-            item.status === 'available' && (!item.pickupClosesAt || new Date(item.pickupClosesAt) > now)
-        ).length;
-    }, [filteredListings]);
+        return filteredListings.filter(item => {
+            const deadline = item.pickupDeadline || item.pickupClosesAt;
+            const isDeadlinePassed = Boolean(deadline && new Date(deadline) <= currentTime);
+            return item.status === 'available' && !isDeadlinePassed;
+        }).length;
+    }, [filteredListings, currentTime]);
 
     const openListing = (listing) => {
-        const now = new Date();
-        const isExpired = listing.status === 'closed' || (listing.pickupClosesAt && new Date(listing.pickupClosesAt) < now);
+        const deadline = listing.pickupDeadline || listing.pickupClosesAt;
+        const isExpired = listing.status === 'closed' || (deadline && new Date(deadline) <= currentTime);
         if (isExpired) return;
 
         const pathname = `/listings/${encodeURIComponent(listing._id)}/information`;
@@ -263,10 +239,45 @@ export default function HomePage() {
                     </button>
                     <button
                         type="button"
+                        className={`category-tag-btn ${activeCategory === 'fruits' ? 'active' : ''}`}
+                        onClick={() => setActiveCategory('fruits')}
+                    >
+                        <span>🍎 Fresh Fruits</span>
+                    </button>
+                    <button
+                        type="button"
                         className={`category-tag-btn ${activeCategory === 'produce' ? 'active' : ''}`}
                         onClick={() => setActiveCategory('produce')}
                     >
-                        <span>🥗 Fresh Produce</span>
+                        <span>🥗 Vegetables & Greens</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={`category-tag-btn ${activeCategory === 'dairy' ? 'active' : ''}`}
+                        onClick={() => setActiveCategory('dairy')}
+                    >
+                        <span>🥛 Dairy & Sweets</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={`category-tag-btn ${activeCategory === 'packaged' ? 'active' : ''}`}
+                        onClick={() => setActiveCategory('packaged')}
+                    >
+                        <span>🥫 Packaged & Pantry</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={`category-tag-btn ${activeCategory === 'beverages' ? 'active' : ''}`}
+                        onClick={() => setActiveCategory('beverages')}
+                    >
+                        <span>🧃 Beverages</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={`category-tag-btn ${activeCategory === 'other' ? 'active' : ''}`}
+                        onClick={() => setActiveCategory('other')}
+                    >
+                        <span>📦 Other</span>
                     </button>
                 </div>
             </section>
@@ -313,7 +324,8 @@ export default function HomePage() {
             {!loading && !error && (
                 <div className="food-listings-grid">
                     {filteredListings.map((item) => {
-                        const timeInfo = formatPickupWindow(item.pickupOpensAt, item.pickupClosesAt, item.status);
+                        const deadline = item.pickupDeadline || item.pickupClosesAt;
+                        const timeInfo = formatPickupDeadline(deadline, item.status, currentTime);
                         return (
                             <article className={`food-listing-card ${timeInfo.isExpired ? 'expired-card' : ''}`} key={item._id}>
                                 {/* Food Photo Box */}
@@ -360,9 +372,9 @@ export default function HomePage() {
                                                 disabled
                                                 aria-disabled="true"
                                                 tabIndex={-1}
-                                                title="Pickup window for this surplus donation has passed"
+                                                title="Pickup deadline for this surplus donation has passed"
                                             >
-                                                <span>Pickup Expired</span>
+                                                <span>Pickup closed</span>
                                             </button>
                                         ) : (
                                             <button

@@ -23,6 +23,7 @@ export async function savePickupSchedule(req, res, next) {
     listing.pickupLocation = pickupLocation.trim();
     listing.pickupOpensAt = pickupOpensAt;
     listing.pickupClosesAt = pickupClosesAt;
+    listing.pickupDeadline = pickupClosesAt;
     listing.status = 'available';
     await listing.save();
     res.json({ listing });
