@@ -319,7 +319,7 @@
     background: rgba(10, 14, 22, 0.82);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    padding: 24px 14px 28px;
+    padding: 0 14px 20px;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -339,6 +339,14 @@
 .sidebar::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
+}
+
+.dashboard .sidebar {
+    border-right: 1px solid rgba(100, 116, 139, 0.28);
+    padding: 0 14px 20px;
+    position: sticky;
+    top: 68px;
+    height: calc(100vh - 68px);
 }
 
 /* Mobile Header inside drawer */
@@ -466,16 +474,24 @@
     box-shadow: 0 4px 14px rgba(255, 94, 26, 0.4);
 }
 
+/* Bottom group keeps community stats beside account actions. */
+.sidebar-bottom-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: auto;
+}
+
 /* Community Pulse Widget */
 .sidebar-pulse-card {
-    background: rgba(15, 20, 28, 0.65);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(145deg, rgba(18, 28, 35, 0.96), rgba(12, 18, 26, 0.96));
+    border: 1px solid rgba(45, 212, 191, 0.16);
     border-radius: 14px;
     padding: 13px;
     display: flex;
     flex-direction: column;
     gap: 9px;
-    margin-top: 4px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
 .pulse-header {
@@ -523,7 +539,6 @@
 
 /* Sidebar Guest Join CTA Card */
 .sidebar-cta-card {
-    margin-top: auto;
     background: linear-gradient(135deg, rgba(255, 94, 26, 0.14) 0%, rgba(15, 20, 28, 0.8) 100%);
     border: 1px solid rgba(255, 94, 26, 0.32);
     border-radius: 16px;
@@ -588,14 +603,14 @@
 
 /* Sidebar Logged-in User Profile Card */
 .sidebar-user-card {
-    margin-top: auto;
-    background: rgba(15, 20, 28, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(145deg, rgba(24, 30, 40, 0.96), rgba(14, 19, 27, 0.96));
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 14px;
     padding: 12px;
     display: flex;
     align-items: center;
     gap: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .sidebar-user-avatar {
@@ -652,17 +667,6 @@
     color: #f87171;
     background: rgba(239, 68, 68, 0.12);
     border-color: rgba(239, 68, 68, 0.3);
-}
-
-/* Sidebar Footer Note */
-.sidebar-footer-quote {
-    font-size: 11px;
-    font-style: italic;
-    font-family: Georgia, serif;
-    color: var(--fb-text-dim);
-    padding: 10px 8px 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.07);
-    margin-top: 10px;
 }
 
 /* --- Main Viewport Canvas --- */
@@ -807,7 +811,7 @@
         height: 100dvh;
         z-index: 1002;
         background: #0b1018;
-        border-right: 1px solid var(--fb-card-border);
+        border-right: 2px solid rgba(100, 116, 139, 0.28);
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
         filter: none;
@@ -816,7 +820,7 @@
         transform: translateX(-100%);
         transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
         box-shadow: none;
-        padding: 20px 16px 28px;
+        padding: 16px 16px 20px;
         overflow-y: auto;
     }
 

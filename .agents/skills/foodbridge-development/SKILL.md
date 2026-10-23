@@ -57,4 +57,10 @@ Before edits, note current branch and `git status`. Keep each contribution focus
 
 ## 7. Current continuation point
 
-The current task begins with the saved registration UI in `client/src/pages/RegisterPage.jsx` and `client/src/pages/RegisterPage.css` on `dev/raofun`. It uses the existing `/auth/register` and `/auth/google` API operations and shared auth flow; API and database files were not changed. The UI includes role cards, name/email/password fields, show/hide password, a password-length hint, error/loading feedback, the Google option, and the “Share → Connect → Nourish” impact line. Continue from this implementation; do not recreate the app or replace this screen without inspecting it.
+On `dev/raofun`, the working tree contains:
+- **Registration (FR01)**: `client/src/pages/RegisterPage.jsx` and `client/src/pages/RegisterPage.css` with role cards, credentials, password meter, and Google OAuth option.
+- **Home Layout & Central Feed State**: `client/src/components/HomeLayout.jsx` and `client/src/styles/homeLayout.css`. Fetches `GET /api/listings/feed` centrally with `AbortController`, distributing `{ feedListings, feedLoading, feedError, reloadFeed }` via `<Outlet context={...} />`.
+- **Homepage (Public Community Feed)**: `client/src/pages/HomePage.jsx` and `client/src/pages/HomePage.css`. Employs `formatPickupWindow()` for flexible/same-day/tomorrow times, sorts expired listings to the bottom, and renders inactive "Pickup Expired" buttons.
+- **Backend & Database**: `server/src/controllers/foodListingController.js` serves public feed with `.lean()` and sanitized fields. `server/src/config/seedBangladeshiData.js` and `server/src/seed.js` provide 8 Bangladeshi demo listings.
+- **Next Features**: FR03 (`FoodListingPage.jsx` for creating listings) and FR04 (`FoodInformationPage.jsx` for details). Sahmina leads FR02 (login) and FR05 (pickup scheduling).
+

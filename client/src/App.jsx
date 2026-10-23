@@ -46,17 +46,21 @@ export default function App() {
         <Route
           path="listings/new"
           element={
-            <Suspense fallback={<LoadingFallback />}>
-              <FoodListingPage />
-            </Suspense>
+            <ProtectedRoute>
+              <Suspense fallback={<LoadingFallback />}>
+                <FoodListingPage />
+              </Suspense>
+            </ProtectedRoute>
           }
         />
         <Route
           path="create-listing"
           element={
-            <Suspense fallback={<LoadingFallback />}>
-              <FoodListingPage />
-            </Suspense>
+            <ProtectedRoute>
+              <Suspense fallback={<LoadingFallback />}>
+                <FoodListingPage />
+              </Suspense>
+            </ProtectedRoute>
           }
         />
         <Route

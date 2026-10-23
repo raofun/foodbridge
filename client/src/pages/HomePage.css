@@ -381,6 +381,53 @@
     z-index: 2;
 }
 
+.card-time-pill.flexible {
+    background: rgba(6, 44, 30, 0.92);
+    border-color: rgba(52, 211, 153, 0.45);
+    color: #6ee7b7;
+}
+
+.card-time-pill.expired {
+    background: rgba(45, 12, 12, 0.94);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #fca5a5;
+}
+
+.card-condition-pill.expired {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+}
+
+.food-listing-card.expired-card {
+    opacity: 0.75;
+    filter: grayscale(0.18);
+    border-color: rgba(239, 68, 68, 0.18);
+}
+
+.food-listing-card.expired-card:hover {
+    transform: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.btn-card-receive.expired-btn {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    color: #64748b !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+    opacity: 0.65;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.btn-card-receive.expired-btn:hover {
+    background: rgba(255, 255, 255, 0.03) !important;
+    color: #64748b !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
 /* Card Body */
 .card-content-body {
     padding: 20px;
@@ -388,71 +435,6 @@
     flex-direction: column;
     gap: 15px;
     flex: 1;
-}
-
-/* Donor Profile Badge Inside Card */
-.card-donor-badge {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.donor-avatar-img {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid rgba(255, 94, 26, 0.4);
-    background: #151d29;
-    flex-shrink: 0;
-}
-
-.donor-avatar-fallback {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #ff5e1a, #ff9100);
-    color: #ffffff;
-    font-weight: 800;
-    font-size: 14px;
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-}
-
-.donor-details-col {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-}
-
-.donor-name-row {
-    font-size: 14px;
-    font-weight: 700;
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.donor-check-icon {
-    color: var(--fb-mint-spark);
-    font-size: 13px;
-    flex-shrink: 0;
-}
-
-.donor-subinfo {
-    font-size: 11px;
-    color: var(--fb-text-sub);
-    display: flex;
-    align-items: center;
-    gap: 5px;
 }
 
 /* Food Text Content */
@@ -483,14 +465,6 @@
     overflow: hidden;
 }
 
-/* Dietary & Quantity Tags */
-.card-tags-row {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    align-items: center;
-}
-
 .pill-portion {
     background: rgba(45, 212, 191, 0.15);
     color: var(--fb-mint-spark);
@@ -504,54 +478,13 @@
     gap: 5px;
 }
 
-.pill-dietary {
-    background: rgba(255, 255, 255, 0.06);
-    color: var(--fb-text-sub);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    font-size: 11px;
-    font-weight: 500;
-    padding: 4px 8px;
-    border-radius: 7px;
-}
-
-.card-location-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: var(--fb-text-dim);
-    margin-top: 2px;
-}
-
-/* Dual Buttons Footer */
+/* Card action */
 .card-buttons-footer {
     display: flex;
     gap: 10px;
     margin-top: auto;
     padding-top: 14px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.btn-card-details {
-    flex: 1;
-    background: rgba(255, 255, 255, 0.06);
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    font-size: 12px;
-    font-weight: 600;
-    padding: 10px 12px;
-    border-radius: 9px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    transition: all 0.18s ease;
-}
-
-.btn-card-details:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.25);
 }
 
 .btn-card-receive {
@@ -648,19 +581,6 @@
     gap: 16px;
 }
 
-.modal-gate-icon-halo {
-    width: 66px;
-    height: 66px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 94, 26, 0.25) 0%, rgba(255, 94, 26, 0.08) 60%, transparent 100%);
-    border: 1px solid rgba(255, 94, 26, 0.4);
-    color: #ff7836;
-    font-size: 26px;
-    display: grid;
-    place-items: center;
-    box-shadow: 0 0 24px rgba(255, 94, 26, 0.28);
-}
-
 .modal-gate-container h2 {
     font-family: 'Manrope', sans-serif;
     font-size: 23px;
@@ -675,41 +595,6 @@
     color: var(--fb-text-sub);
     line-height: 1.6;
     max-width: 420px;
-    margin: 0;
-}
-
-/* Item Preview Snippet inside Modal */
-.modal-item-preview {
-    width: 100%;
-    background: rgba(10, 14, 20, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 14px;
-    padding: 12px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    text-align: left;
-    box-sizing: border-box;
-}
-
-.preview-photo {
-    width: 58px;
-    height: 58px;
-    border-radius: 10px;
-    object-fit: cover;
-    flex-shrink: 0;
-}
-
-.preview-desc h4 {
-    font-size: 14px;
-    font-weight: 700;
-    color: #ffffff;
-    margin: 0 0 4px;
-}
-
-.preview-desc p {
-    font-size: 11px;
-    color: var(--fb-text-sub);
     margin: 0;
 }
 
@@ -782,108 +667,6 @@
 .btn-gate-browse:hover {
     color: var(--fb-text-sub);
     text-decoration: underline;
-}
-
-/* Full Details Modal Banner & Grid */
-.modal-photo-banner {
-    width: 100%;
-    height: 220px;
-    object-fit: cover;
-    border-top-left-radius: 24px;
-    border-top-right-radius: 24px;
-}
-
-.modal-details-body {
-    padding: 26px;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-}
-
-.modal-details-body h2 {
-    font-family: 'Manrope', sans-serif;
-    font-size: 22px;
-    font-weight: 800;
-    color: #ffffff;
-    margin: 0 0 8px;
-    letter-spacing: -0.4px;
-}
-
-.specs-console-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    background: rgba(10, 14, 20, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 14px;
-    padding: 16px;
-}
-
-.spec-cell {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.spec-cell-label {
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--fb-text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-}
-
-.spec-cell-value {
-    font-size: 13px;
-    font-weight: 600;
-    color: #ffffff;
-}
-
-.safety-notes-panel {
-    background: rgba(251, 191, 36, 0.08);
-    border: 1px solid rgba(251, 191, 36, 0.25);
-    border-radius: 12px;
-    padding: 14px;
-    font-size: 12px;
-    line-height: 1.55;
-    color: #fde68a;
-}
-
-/* Reservation Confirmation Ticket Pass */
-.success-pass-card {
-    padding: 36px 26px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-}
-
-.success-pass-badge {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    background: rgba(45, 212, 191, 0.16);
-    border: 1px solid var(--fb-mint-spark);
-    color: var(--fb-mint-spark);
-    font-size: 28px;
-    display: grid;
-    place-items: center;
-    box-shadow: 0 0 24px rgba(45, 212, 191, 0.3);
-}
-
-.pass-ticket-code {
-    font-family: monospace;
-    font-size: 22px;
-    font-weight: 800;
-    letter-spacing: 3px;
-    background: rgba(10, 14, 20, 0.9);
-    color: var(--fb-mint-spark);
-    padding: 10px 22px;
-    border-radius: 10px;
-    border: 1px dashed rgba(45, 212, 191, 0.5);
-    box-shadow: 0 0 16px rgba(45, 212, 191, 0.15);
-    margin: 6px 0;
 }
 
 @keyframes modalFade {
@@ -979,9 +762,6 @@
         gap: 12px;
     }
 
-    .specs-console-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 /* Small Handsets (<= 480px) */
@@ -1026,18 +806,9 @@
         max-height: calc(100vh - 20px);
     }
 
-    .modal-details-body {
-        padding: 18px 14px;
-        gap: 14px;
-    }
-
     .modal-gate-container {
         padding: 28px 16px 20px;
         gap: 14px;
-    }
-
-    .modal-photo-banner {
-        height: 175px;
     }
 }
 
@@ -1048,26 +819,10 @@
         gap: 8px;
     }
 
-    .btn-card-details,
     .btn-card-receive {
         width: 100%;
         padding: 11px 12px;
         box-sizing: border-box;
-    }
-
-    .card-donor-badge {
-        gap: 9px;
-    }
-
-    .donor-avatar-img,
-    .donor-avatar-fallback {
-        width: 36px;
-        height: 36px;
-        font-size: 13px;
-    }
-
-    .donor-name-row {
-        font-size: 13px;
     }
 }
 

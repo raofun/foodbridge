@@ -1,63 +1,150 @@
-# FoodBridge project handoff
+# FoodBridge Project Handoff & Architecture Blueprint
 
-This note is the working brief for a human or coding assistant continuing the shared FoodBridge repository. Read it together with the root `AGENTS.md` and `.agents/skills/foodbridge-development/SKILL.md`.
+This document is the working brief and architectural source of truth for any collaborator (Raofun, Sahmina) or AI assistant (such as Antigravity) continuing work in the shared FoodBridge repository. Read this together with the root `AGENTS.md` and `.agents/skills/foodbridge-development/SKILL.md`.
 
-## Goal
+---
 
-Build Module 1 of FoodBridge, a web app that helps people share surplus food and coordinate collection. The project uses separate feature screens, a React frontend, API calls for application processes, an Express server, and MongoDB. The user plans to host the web frontend on Vercel and keep hosting/database costs at zero using free tiers. Choose designs and architecture with that goal in mind, and verify up-to-date free-tier constraints when deployment work begins.
+## 1. Goal & Product Vision
 
-## Feature ownership
+FoodBridge is an accessible, community-driven web application for rescuing surplus food and coordinating safe, dignified pickups between local donors (restaurants, caterers, households) and receivers/volunteers (shelters, community members).
 
-| Feature | Requirement | Owner | Page / route |
-| --- | --- | --- | --- |
-| Registration + Google sign-in | FR01 | Raofun | `client/src/pages/RegisterPage.jsx`, `/register` |
-| Login + Google sign-in | FR02 | Sahmina | `client/src/pages/LoginPage.jsx`, `/login` |
-| Food listing | FR03 | Raofun | `client/src/pages/FoodListingPage.jsx`, `/dashboard/listings/new` |
-| Food information | FR04 | Raofun | `client/src/pages/FoodInformationPage.jsx`, `/dashboard/listings/:listingId/information` |
-| Pickup scheduling | FR05 | Sahmina | `client/src/pages/PickupSchedulePage.jsx`, `/dashboard/listings/:listingId/pickup` |
+* **Hosting Target**: Designed for 100% free-tier deployment (Frontend on Vercel; Backend on free-tier cloud platforms like Render/Railway/Fly.io; Database on MongoDB Atlas free M0 cluster).
+* **Guiding Constraints**: Zero deployment costs, no secrets committed to Git, zero direct DB access from the client, lean queries, and high-performance UX.
 
-Dashboard and listing history are supporting navigation/screens, not separate Module 1 requirements. Work in separate branches (`dev/raofun` for Raofun and Sahmina's own branch) and coordinate integration. The shared `main` branch should receive reviewed, focused changes through the team's agreed GitHub merge process.
+---
 
-## Current state: registration screen
+## 2. Feature Ownership & Module 1 Map
 
-The latest local work on `dev/raofun` is a visual and usability pass on registration:
+| Feature | Requirement | Owner | Primary Page / Component | Route |
+| :--- | :--- | :--- | :--- | :--- |
+| **Registration + Google Sign-In** | FR01 | **Raofun** | `client/src/pages/RegisterPage.jsx` | `/register` |
+| **Login + Google Sign-In** | FR02 | **Sahmina** | `client/src/pages/LoginPage.jsx` | `/login` |
+| **Food Listing (Creation)** | FR03 | **Raofun** | `client/src/pages/FoodListingPage.jsx` | `/listings/new` (or `/create-listing`) |
+| **Food Information (Details)** | FR04 | **Raofun** | `client/src/pages/FoodInformationPage.jsx` | `/listings/:listingId/information` |
+| **Pickup Scheduling** | FR05 | **Sahmina** | `client/src/pages/PickupSchedulePage.jsx` | `/listings/:listingId/pickup` |
 
-- `client/src/pages/RegisterPage.jsx` now presents role selection cards for donor, receiver, and volunteer; full name, email, and password; a show/hide password control; a lightweight password-length indicator; request loading/error states; an email-registration submit action; and Google sign-in.
-- `client/src/pages/RegisterPage.css` contains the page-specific responsive styles and motion for the registration experience.
-- The page reuses `AuthFrame`, `AuthDivider`, `GoogleSignInButton`, `AuthContext`, and the shared API helper. Login is still a distinct route and screen.
-- Email registration calls the existing `POST /api/auth/register` endpoint. Google sign-in calls `POST /api/auth/google`. Successful responses are passed to the existing auth context and navigate to `/dashboard`.
-- No API contract, server route, model, or database code was changed as part of this registration UI work.
-- The CSS/JSX are saved in the working tree; they have not been committed or pushed. Keep them intact and include them when Raofun commits this feature.
+> [!IMPORTANT]
+> **Branching & Collaboration Rules**:
+> * Raofun works on `dev/raofun`; Sahmina works on her feature branch.
+> * Never commit or push without explicit approval from the developer.
+> * Before altering shared API contracts, Mongoose models, or cross-cutting middleware, coordinate with Raofun.
 
-The client packages were installed locally into `client/node_modules` for preview; the install used `--no-save --package-lock=false`, so it is not intended as a source change. A Vite preview was launched at `http://127.0.0.1:5173/register`. Stop that dev server with Ctrl+C in its terminal when finished.
+---
 
-## What is needed to use authentication end to end
+## 3. Current Working State (as of October 2026)
 
-- Client config: copy `client/.env.example` to `client/.env`, set `VITE_API_BASE_URL` to the API URL, and set `VITE_GOOGLE_CLIENT_ID` to a Google OAuth web client ID.
-- Server config: copy `server/.env.example` to `server/.env`, set `MONGODB_URI`, a random `JWT_SECRET` (at least 32 characters), `CLIENT_ORIGIN`, and the matching `GOOGLE_CLIENT_ID`.
-- Run the Express server and Vite client in separate terminals. MongoDB must be reachable for real registration/login.
-- Google sign-in will render as a disabled setup hint until the frontend client ID is configured. Google also requires the authorized origin to match the local/deployed site, and the server must verify the credential against the same client ID.
-- Never commit `.env` files, OAuth secrets, database credentials, or JWT secrets. Use the provider's environment-variable settings for deployment.
+### A. Authentication & Onboarding (FR01 / FR02)
+* **Registration UI (`client/src/pages/RegisterPage.jsx`)**:
+  * Role selection cards: Donor, Receiver, Volunteer.
+  * Form fields: Full name, email, password with toggleable show/hide and visual length meter.
+  * Dual signup path: Standard email registration (`POST /api/auth/register`) and Google OAuth popup (`POST /api/auth/google`).
+  * Reusable auth frame, dividers, and branded "Share → Connect → Nourish" community visual.
+* **Navigation Gating & Destination Memory**:
+  * Protected routes wrap `/listings/new` and `/create-listing`.
+  * If a guest attempts to create a listing or claim an item, they are redirected to login with `state: { from: location, listing }`, preserving their flow seamlessly after authentication.
 
-## Code map
+### B. Layout & Shell Architecture (`client/src/components/HomeLayout.jsx`)
+* **Single Source of Truth for Feed Data**:
+  * `HomeLayout` executes the `GET /api/listings/feed` request centrally with `AbortController` cancellation to eliminate memory leaks and race conditions.
+  * Provides `{ feedListings, feedLoading, feedError, reloadFeed }` to nested views via React Router's `<Outlet context={...} />`. This eliminates duplicate network calls between parent layout and child views.
+* **Contextual Navigation & Mobile Drawer**:
+  * Topbar displays section indicators ("Community Feed", "Create Listing", etc.).
+  * Desktop sidebar features "Create Listing" **only for signed-in users**; guests see a "Get Started Free" conversion card.
+  * Fully responsive mobile navigation drawer with backdrop blur and background scroll-lock.
+  * "Community Pulse" counter dynamically displays real-time active meal counts.
 
-- `client/src/App.jsx`: route table and protected/auth-only route guards.
-- `client/src/pages/`: one component per feature screen.
-- `client/src/components/`: shared layout, auth widgets, and listing flow components.
-- `client/src/context/AuthContext.jsx`: current authenticated session.
-- `client/src/services/api.js`: frontend API base URL, request helper, and auth token handling.
-- `server/src/app.js`: Express app, middleware, and API route mounting.
-- `server/src/routes/`: HTTP endpoint definitions.
-- `server/src/controllers/`: request processing and business rules.
-- `server/src/models/`: Mongoose schemas.
-- `server/src/middleware/requireAuth.js`: authentication gate for protected endpoints.
+### C. Public Community Feed (`client/src/pages/HomePage.jsx`)
+* **Zero Friction for Public Browsers**:
+  * Anyone can browse surplus food without logging in.
+* **Comprehensive Pickup Window Engine (`formatPickupWindow`)**:
+  * Supports all real-world scheduling patterns:
+    1. *Flexible windows* (e.g., "Flexible pickup window" or "Flexible · Until 9:00 PM").
+    2. *Same-day ranges* (e.g., "Today · 2:00 PM – 6:00 PM").
+    3. *Upcoming / Multi-day windows* (e.g., "Tomorrow · 10:00 AM – 2:00 PM").
+    4. *Open-ended slots* (e.g., "Today · from 5:00 PM").
+    5. *Expired items* (e.g., "Expired · Closed at 4:00 PM").
+* **Expired Listing Management**:
+  * Expired or closed listings (`status === 'closed'` or `pickupClosesAt < Date.now()`) automatically sink to the bottom of the feed.
+  * Cards render an inactive state with a disabled "Pickup Expired" button, preventing invalid interactions.
+* **Auth-Gate Modal**:
+  * Unauthenticated users clicking active food cards see an intuitive modal preview prompting them to join or sign in, with their selection preserved.
 
-## Collaboration and change boundaries
+### D. Backend REST API & Database
+* **Controller (`server/src/controllers/foodListingController.js`)**:
+  * `getPublicFeed`: Queries `{ status: { $in: ['available', 'closed'] } }` using Mongoose `.lean()` and `.populate('donor', 'name role')`. Sanitizes output to expose only safe public fields.
+  * Authenticated endpoints: `createListing`, `myListings`, `getListing` scoped strictly to `req.user.id`.
+* **Database & Seed Data (`server/src/config/seedBangladeshiData.js` & `server/src/seed.js`)**:
+  * Realistic Bangladeshi demo dataset (Biryani, Khichuri, Paratha, Roshogolla, Lentil Curry) representing diverse conditions (fresh, refrigerated, shelf-stable) across Dhaka neighborhoods (Dhanmondi, Gulshan, Mirpur, Uttara, Mohakhali, Banani).
+  * Includes 6 active listings with diverse timestamp profiles and 2 expired listings for testing.
+  * Standalone runner executable via `npm run seed`.
 
-Page-level presentation and interaction work can proceed on its assigned feature branch. Shared integration work needs coordination to avoid both contributors editing the same file. In particular, before changing a shared API contract, server route/controller behavior, Mongoose schema, or persistence behavior, explain what needs to change and ask Raofun first. This instruction came directly from the project owner. Do not silently make database changes while styling a page.
+---
 
-When an API change is approved, record the agreed method, path, request fields, response shape, authentication requirement, and ownership rule in the handoff or README. Scope MongoDB data by the authenticated account; do not use a browser-provided owner ID as authority.
+## 4. Design Principles & Thinking Procedure
 
-## Immediate next step
+When building or styling any feature in FoodBridge, adhere to these established standards:
 
-Continue refining the registration screen from the current preview, with responsive layout and accessible interaction states. Keep the separate login link and Google option in place. If visual changes do not work as expected, inspect the existing shared auth styles in `client/src/styles/global.css` and `AuthFrame` before editing shared styles. Once the user approves the visual direction, commit the registration page files on `dev/raofun` and push that branch through the user's Git workflow. Do not commit or push on the user's behalf unless asked.
+### 1. Visual Language & Aesthetics
+* **Theme & Atmosphere**: Modern, clean, warm, and inviting. The app must feel like a premier civic-tech platform, not a generic bootstrap template.
+* **Color Palette**:
+  * *Primary Green / Emerald*: `#10b981` / `#059669` (evokes freshness, nourishment, sustainability).
+  * *Warm Amber / Orange*: `#f59e0b` / `#ea580c` (evokes warmth, hospitality, urgency for quick pickups).
+  * *Surfaces & Backgrounds*: Deep dark slate/charcoal tones (`#090d16`, `#0f172a`, `#1e293b`) for headers/sidebar accents contrasted with clean, crisp cards.
+  * *Pills & Badges*: Tinted translucent backgrounds with matching borders (e.g., emerald for active, red/slate for expired, amber for flexible).
+* **Typography & Hierarchy**:
+  * Clear visual hierarchy: Crisp section badges, bold card headings (1.05rem–1.25rem), subtle metadata captions (0.8rem), and high-contrast text for accessibility.
+* **Micro-interactions & Motion**:
+  * Subtle hover elevations (`transform: translateY(-2px)`), smooth glassmorphic blur (`backdrop-filter: blur(12px)`), and gentle transitions (150ms–250ms).
+  * **Always respect `@media (prefers-reduced-motion: reduce)`**.
+  * Use regular CSS transitions; do not add heavy external JS animation packages.
+
+### 2. Engineering & Code Principles
+* **Performance & Efficiency First**:
+  * Always use `.lean()` on MongoDB read queries that do not require Mongoose document save methods.
+  * Use `React.useMemo` for derived client-side sorting and filtering.
+  * Prevent duplicate API calls: lift feed requests to parent layout and distribute via `useOutletContext()`.
+  * Always attach an `AbortController` signal to asynchronous `useEffect` fetch calls.
+* **Resilient Data & Time Handling**:
+  * Store all dates/timestamps in UTC in MongoDB (`Date` type).
+  * Format dates and times on the client using the user's local timezone via native `Intl` or `toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })`.
+  * Never assume a pickup window always has both open and close timestamps; provide robust fallbacks for flexible or open-ended schedules.
+* **Zero Trust Security Boundary**:
+  * Never trust a client-supplied `donorId` or `userId`. The backend extracts identity exclusively from verified JWT tokens (`req.user.id`).
+  * Keep `.env` files out of Git. Never log secrets or tokens.
+
+---
+
+## 5. Development & Verification Guide
+
+### Prerequisites & Environment Setup
+1. **Client (`client/.env`)**:
+   ```env
+   VITE_API_BASE_URL=http://localhost:4000/api
+   VITE_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
+   ```
+2. **Server (`server/.env`)**:
+   ```env
+   PORT=4000
+   CLIENT_ORIGIN=http://localhost:5173
+   MONGODB_URI=mongodb://127.0.0.1:27017/foodbridge
+   JWT_SECRET=your_super_secret_jwt_key_at_least_32_characters_long
+   GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
+   ```
+
+### Running Locally
+* **Start Backend**: `npm run server` (runs Express with `node --watch src/app.js` on port 4000).
+* **Start Frontend**: `npm run client` (runs Vite dev server on `http://localhost:5173`).
+* **Seed Database**: `npm run seed` in root or `node src/seed.js` inside `server/`.
+
+---
+
+## 6. Next Steps for Feature Implementation
+
+1. **FR03: Food Listing Creation (`client/src/pages/FoodListingPage.jsx`)**:
+   * Build the donor flow to submit surplus food details (dish name, quantity, category, condition, pickup window, address).
+   * Submit to `POST /api/listings`.
+2. **FR04: Food Information Detail View (`client/src/pages/FoodInformationPage.jsx`)**:
+   * Present allergen details, storage advice, donor notes, and location map/pin.
+3. **FR05: Pickup Scheduling (Sahmina - `client/src/pages/PickupSchedulePage.jsx`)**:
+   * Allow receivers to book a pickup slot against active listings.
+

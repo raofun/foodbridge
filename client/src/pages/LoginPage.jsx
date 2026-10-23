@@ -8,38 +8,12 @@ import {
   EyeOff, 
   ArrowRight, 
   AlertCircle, 
-  Loader2,
-  UtensilsCrossed,
-  Users,
-  HeartHandshake,
-  Check,
-  Sparkles
+  Loader2
 } from 'lucide-react';
 import AuthDivider from '../components/AuthDivider.jsx';
 import GoogleSignInButton from '../components/GoogleSignInButton.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { apiRequest } from '../services/api.js';
-
-const ROLES = [
-  {
-    id: 'donor',
-    label: 'Food Donor',
-    hint: 'I have surplus meals, groceries, or food to share',
-    icon: UtensilsCrossed,
-  },
-  {
-    id: 'receiver',
-    label: 'Community Receiver',
-    hint: 'I represent a shelter, food bank, or community needing food',
-    icon: Users,
-  },
-  {
-    id: 'volunteer',
-    label: 'Volunteer Courier',
-    hint: 'I want to help pick up and transport surplus donations',
-    icon: HeartHandshake,
-  },
-];
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -62,12 +36,16 @@ export default function LoginPage() {
         body: JSON.stringify({ credential }),
       });
       signIn(result);
-      navigate(returnTo, { replace: true });
+      if (typeof returnTo === 'object') {
+        navigate(returnTo, { replace: true });
+      } else {
+        navigate(returnTo, { replace: true, state: location.state?.listing ? { listing: location.state.listing } : undefined });
+      }
     } catch (requestError) {
       setError(requestError.message);
       setBusy(false);
     }
-  }, [navigate, signIn, returnTo]);
+  }, [navigate, signIn, returnTo, location.state]);
 
   // Handle email/password sign-in submission
   async function submit(event) {
@@ -84,7 +62,11 @@ export default function LoginPage() {
         }),
       });
       signIn(result);
-      navigate(returnTo, { replace: true });
+      if (typeof returnTo === 'object') {
+        navigate(returnTo, { replace: true });
+      } else {
+        navigate(returnTo, { replace: true, state: location.state?.listing ? { listing: location.state.listing } : undefined });
+      }
     } catch (requestError) {
       setError(requestError.message);
       setBusy(false);
