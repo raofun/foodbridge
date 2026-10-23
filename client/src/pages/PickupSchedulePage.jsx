@@ -26,7 +26,11 @@ export default function PickupSchedulePage() {
       .then(({ listing }) => {
         if (listing.status !== 'draft') { navigate('/listings/mine', { replace: true }); return; }
         if (!listing.preparedAt || !listing.storageDetails || !listing.foodCondition) { navigate(`/listings/${listingId}/information`, { replace: true }); return; }
-        setForm({ pickupLocation: listing.pickupLocation || '', pickupOpensAt: toLocalDateTime(listing.pickupOpensAt), pickupClosesAt: toLocalDateTime(listing.pickupClosesAt) });
+        setForm({
+          pickupLocation: listing.pickupLocation || '',
+          pickupOpensAt: toLocalDateTime(listing.pickupOpensAt),
+          pickupClosesAt: toLocalDateTime(listing.pickupClosesAt || listing.pickupDeadline),
+        });
         setListingLoaded(true);
       })
       .catch(e => setError(e.message))

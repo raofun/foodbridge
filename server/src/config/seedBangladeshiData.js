@@ -210,6 +210,7 @@ export async function seedBangladeshiListings() {
         preparedAt: new Date(now.getTime() - 2 * 3600 * 1000),
         pickupOpensAt,
         pickupClosesAt,
+        pickupDeadline: pickupClosesAt,
         status: item.status,
       });
     }

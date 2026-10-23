@@ -1,12 +1,19 @@
 import Listing from '../models/Listing.js';
 
 function validateListingBasics(body) {
-    const { foodName, description, quantity, portionUnit, photoUrl } = body;
+    const { foodName, description, quantity, portionUnit, photoUrl, pickupDeadline } = body;
     if (!foodName?.trim() || !description?.trim() || !portionUnit?.trim() || quantity === undefined) {
         return 'Complete the food name, description, quantity, and portion unit.';
     }
     if (!Number.isInteger(Number(quantity)) || Number(quantity) < 1) return 'Quantity must be a whole number of at least 1.';
-    if (photoUrl && !/^https?:\/\//i.test(photoUrl)) return 'Photo must be a valid http or https URL.';
+    if (photoUrl && !/^https?:\/\//i.test(photoUrl) && !/^data:image\//i.test(photoUrl)) {
+        return 'Photo must be a valid http or https URL or uploaded image.';
+    }
+    if (pickupDeadline) {
+        const deadline = new Date(pickupDeadline);
+        if (isNaN(deadline.getTime())) return 'Pickup deadline must be a valid date and time.';
+        if (deadline.getTime() <= Date.now()) return 'Pickup deadline cannot be in the past.';
+    }
     return null;
 }
 
@@ -24,27 +31,36 @@ export async function getPublicFeed(req, res, next) {
             .populate('donor', 'name role')
             .lean();
 
-        const publicListings = listings.map(item => ({
-            _id: item._id,
-            foodName: item.foodName,
-            description: item.description,
-            photoUrl: item.photoUrl,
-            quantity: item.quantity,
-            portionUnit: item.portionUnit,
-            category: item.category || 'meals',
-            foodCondition: item.foodCondition,
-            storageDetails: item.storageDetails,
-            safetyNotes: item.safetyNotes,
-            pickupLocation: item.pickupLocation,
-            pickupOpensAt: item.pickupOpensAt,
-            pickupClosesAt: item.pickupClosesAt,
-            status: item.status,
-            createdAt: item.createdAt,
-            donor: {
-                name: item.donor?.name || 'Community Donor',
-                role: item.donor?.role || 'Member',
-            },
-        }));
+        const now = new Date();
+
+        const publicListings = listings.map(item => {
+            const deadline = item.pickupDeadline || item.pickupClosesAt;
+            const isDeadlinePassed = Boolean(deadline && new Date(deadline) <= now);
+            const status = (item.status === 'closed' || isDeadlinePassed) ? 'closed' : item.status;
+
+            return {
+                _id: item._id,
+                foodName: item.foodName,
+                description: item.description,
+                photoUrl: item.photoUrl,
+                quantity: item.quantity,
+                portionUnit: item.portionUnit,
+                category: item.category || 'meals',
+                foodCondition: item.foodCondition,
+                storageDetails: item.storageDetails,
+                safetyNotes: item.safetyNotes,
+                pickupLocation: item.pickupLocation,
+                pickupOpensAt: item.pickupOpensAt,
+                pickupClosesAt: item.pickupClosesAt,
+                pickupDeadline: deadline,
+                status,
+                createdAt: item.createdAt,
+                donor: {
+                    name: item.donor?.name || 'Community Donor',
+                    role: item.donor?.role || 'Member',
+                },
+            };
+        });
 
         res.json({ listings: publicListings });
     } catch (error) {
@@ -66,6 +82,8 @@ export async function createListing(req, res, next) {
             category: req.body.category || 'meals',
             donor: req.user.id,
             status: 'draft',
+            pickupDeadline: req.body.pickupDeadline ? new Date(req.body.pickupDeadline) : undefined,
+            pickupClosesAt: req.body.pickupDeadline ? new Date(req.body.pickupDeadline) : undefined,
         });
         res.status(201).json({ listing });
     } catch (error) {
