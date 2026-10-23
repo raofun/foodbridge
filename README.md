@@ -2,6 +2,7 @@
 
 FoodBridge coordinates surplus food donations and pickup. This repository is the shared codebase; develop each module on a feature branch and integrate it through a pull request.
 
+
 ## Module 1 implemented
 
 - Email registration with role selection (donor, receiver, volunteer)

@@ -1,0 +1,963 @@
+
+
+:root {
+  /* High-Contrast Obsidian & Electric Orange Palette */
+  --fb-canvas: #080b10;
+  --fb-card: rgba(15, 20, 28, 0.88);
+  --fb-card-border: rgba(255, 255, 255, 0.1);
+  --fb-card-rim: rgba(255, 255, 255, 0.16);
+  --fb-card-border-hover: rgba(255, 94, 26, 0.5);
+  
+  --fb-input-bg: rgba(10, 14, 20, 0.85);
+  --fb-input-border: rgba(255, 255, 255, 0.1);
+  
+  /* Primary Hero Accent: Electric Clementine Orange */
+  --fb-orange-vivid: #ff5e1a;
+  --fb-orange-bright: #ff7836;
+  --fb-orange-deep: #e04400;
+  --fb-orange-glow: rgba(255, 94, 26, 0.38);
+  --fb-orange-subtle: rgba(255, 94, 26, 0.16);
+  
+  /* Jewel Contrast Accent: Electric Mint & Honey Gold */
+  --fb-mint-spark: #2dd4bf;
+  --fb-mint-glow: rgba(45, 212, 191, 0.35);
+  --fb-amber-sun: #fbbf24;
+  
+  /* High-Clarity Typography */
+  --fb-text-pure: #ffffff;
+  --fb-text-sub: #94a3b8;
+  --fb-text-dim: #64748b;
+  
+  --fb-error-bg: rgba(239, 68, 68, 0.14);
+  --fb-error-border: rgba(239, 68, 68, 0.35);
+  --fb-error-text: #fca5a5;
+  
+  --fb-radius-card: 22px;
+  --fb-radius-element: 10px;
+  --fb-radius-pill: 9999px;
+}
+
+/* Base Full-Viewport Container (Strictly Zero Scroll) */
+.auth-viewport-stage {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  background-color: var(--fb-canvas);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: clamp(10px, 1.8vh, 20px) 16px;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--fb-text-pure);
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   Bespoke Food Rescue Route Canvas (0KB External Assets)
+   ========================================================================== */
+
+.auth-route-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+/* Sunset Ember Ambient Horizon */
+.auth-sunset-glow {
+  position: absolute;
+  bottom: -15%;
+  left: 5%;
+  width: min(700px, 75vw);
+  height: min(440px, 50vh);
+  background: radial-gradient(ellipse at bottom, rgba(255, 94, 26, 0.22) 0%, rgba(251, 191, 36, 0.1) 45%, transparent 75%);
+  filter: blur(55px);
+  will-change: transform;
+}
+
+/* Top Right Cool Horizon Glow for Dual-Tone Contrast */
+.auth-ambient-sunspot {
+  position: absolute;
+  top: -12%;
+  right: -8%;
+  width: min(520px, 55vw);
+  height: min(400px, 45vh);
+  background: radial-gradient(ellipse at top right, rgba(45, 212, 191, 0.1) 0%, rgba(255, 94, 26, 0.08) 50%, transparent 70%);
+  filter: blur(65px);
+}
+
+/* Geometric Micro-Grid Matrix */
+.auth-route-canvas::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 26px 26px;
+  opacity: 0.7;
+}
+
+/* SVG Vector Rescue Flow Contour Lines */
+.auth-contour-map {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  opacity: 0.88;
+}
+
+/* Subtle Path Flow Motion (Hardware-accelerated) */
+.route-path-anim-1 {
+  animation: flow-dash-1 40s linear infinite;
+}
+
+.route-path-anim-2 {
+  animation: flow-dash-2 30s linear infinite;
+}
+
+@keyframes flow-dash-1 {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -200; }
+}
+
+@keyframes flow-dash-2 {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 250; }
+}
+
+/* Community Node Pulse */
+.node-pulse {
+  animation: node-twinkle 4s ease-in-out infinite alternate;
+  transform-origin: center;
+}
+
+.node-pulse:nth-child(2) { animation-delay: 1s; }
+.node-pulse:nth-child(3) { animation-delay: 2s; }
+.node-pulse:nth-child(4) { animation-delay: 0.5s; }
+.node-pulse:nth-child(5) { animation-delay: 1.5s; }
+
+@keyframes node-twinkle {
+  0% { opacity: 0.45; r: 3; }
+  50% { opacity: 1; r: 5.5; }
+  100% { opacity: 0.6; r: 3.5; }
+}
+
+/* ==========================================================================
+   Header Bar
+   ========================================================================== */
+
+.auth-header-bar {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.auth-brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--fb-text-pure);
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: clamp(16px, 2.2vw, 19px);
+  letter-spacing: -0.5px;
+  transition: transform 0.2s ease;
+}
+
+.auth-brand-badge:hover {
+  transform: translateY(-1px);
+}
+
+.auth-brand-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ff5e1a 0%, #d83d00 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  box-shadow: 0 4px 14px var(--fb-orange-glow);
+}
+
+.auth-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  background: rgba(15, 20, 28, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--fb-radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fb-text-sub);
+  backdrop-filter: blur(10px);
+}
+
+.auth-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fb-mint-spark);
+  box-shadow: 0 0 10px var(--fb-mint-spark);
+  animation: pulse-glow 2s infinite ease-in-out;
+}
+
+/* ==========================================================================
+   Central Specular Glass Card Console
+   ========================================================================== */
+
+.auth-card-core {
+  width: 100%;
+  max-width: 610px;
+  background: var(--fb-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--fb-card-border);
+  border-top: 1px solid var(--fb-card-rim);
+  border-radius: var(--fb-radius-card);
+  box-shadow: 
+    0 26px 54px rgba(0, 0, 0, 0.68),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 0 44px rgba(255, 94, 26, 0.12);
+  padding: clamp(20px, 3vh, 32px) clamp(22px, 4vw, 36px);
+  z-index: 2;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-card-core.login-mode {
+  max-width: 480px;
+}
+
+/* Card Header */
+.auth-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: clamp(8px, 1.5vh, 14px);
+}
+
+.auth-main-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: clamp(22px, 3vh, 27px);
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  color: var(--fb-text-pure);
+  margin: 0;
+  line-height: 1.15;
+}
+
+.auth-sub-desc {
+  font-size: clamp(12px, 1.5vh, 13px);
+  color: var(--fb-text-sub);
+  margin: 4px 0 0 0;
+}
+
+/* Fluid Segmented Tab Navigation */
+.auth-nav-pill-group {
+  display: flex;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--fb-radius-pill);
+  padding: 3px;
+  margin-bottom: clamp(10px, 1.6vh, 16px);
+  position: relative;
+}
+
+.auth-nav-pill-btn {
+  flex: 1;
+  padding: clamp(7px, 1.1vh, 9px) 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  color: var(--fb-text-sub);
+  border-radius: var(--fb-radius-pill);
+  position: relative;
+  z-index: 1;
+  transition: color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.auth-nav-pill-btn.active {
+  color: #ffffff;
+}
+
+.auth-nav-pill-indicator {
+  position: absolute;
+  inset: 3px;
+  background: linear-gradient(135deg, rgba(255, 94, 26, 0.45), rgba(224, 68, 0, 0.7));
+  border: 1px solid rgba(255, 120, 54, 0.5);
+  border-radius: var(--fb-radius-pill);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  z-index: 0;
+}
+
+/* All-In-One Community Account Perks Box */
+.community-perks-box {
+  background: rgba(255, 94, 26, 0.08);
+  border: 1px solid rgba(255, 94, 26, 0.22);
+  border-radius: var(--fb-radius-element);
+  padding: 10px 14px;
+  margin-bottom: clamp(10px, 1.6vh, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.community-perks-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--fb-orange-bright);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.perks-spark-icon {
+  color: var(--fb-orange-bright);
+}
+
+.community-perks-text {
+  font-size: 11px;
+  color: var(--fb-text-sub);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Compact Segmented Role Bar */
+.role-segmented-box {
+  margin-bottom: clamp(8px, 1.4vh, 13px);
+}
+
+.role-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fb-text-sub);
+}
+
+.role-selected-badge {
+  color: var(--fb-orange-bright);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.role-bar-segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--fb-radius-element);
+  padding: 3px;
+  gap: 3px;
+  position: relative;
+}
+
+.role-bar-btn {
+  background: transparent;
+  border: none;
+  padding: clamp(6px, 1vh, 8px) 8px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--fb-text-sub);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+}
+
+.role-bar-btn:hover:not(.selected) {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.role-bar-btn.selected {
+  color: #ffffff;
+}
+
+.role-bar-indicator {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 94, 26, 0.32), rgba(224, 68, 0, 0.5));
+  border: 1px solid rgba(255, 120, 54, 0.5);
+  border-radius: 7px;
+  z-index: 0;
+}
+
+.role-dynamic-hint {
+  font-size: 10.5px;
+  color: var(--fb-orange-bright);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Compact Responsive Form Grid */
+.auth-form-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(7px, 1.2vh, 11px);
+}
+
+.form-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(8px, 1.2vh, 12px);
+}
+
+.auth-field-unit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.auth-field-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fb-text-sub);
+}
+
+.auth-input-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input-icon-glyph {
+  position: absolute;
+  left: 11px;
+  color: var(--fb-text-dim);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  transition: color 0.2s;
+}
+
+.auth-dark-input {
+  width: 100%;
+  height: clamp(38px, 4.8vh, 43px);
+  background: var(--fb-input-bg);
+  border: 1px solid var(--fb-input-border);
+  border-radius: var(--fb-radius-element);
+  padding: 0 12px 0 34px;
+  font-size: 13px;
+  color: var(--fb-text-pure);
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.auth-dark-input:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(13, 18, 26, 0.9);
+}
+
+.auth-dark-input:focus {
+  border-color: var(--fb-orange-bright);
+  box-shadow: 0 0 0 2px var(--fb-orange-glow);
+  background: rgba(15, 21, 30, 0.98);
+}
+
+.auth-dark-input:focus + .auth-eye-btn {
+  color: var(--fb-text-sub);
+}
+
+.auth-dark-input::placeholder {
+  color: #475569;
+}
+
+.auth-eye-btn {
+  position: absolute;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: var(--fb-text-dim);
+  cursor: pointer;
+  padding: 4px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.auth-eye-btn:hover {
+  color: var(--fb-text-pure);
+}
+
+/* Subtle Inline Password Strength Dots */
+.password-subtle-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 2px 0 2px;
+  font-size: 10px;
+}
+
+.password-dots-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.password-dot {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.password-dot.active {
+  background: var(--fb-orange-bright);
+  box-shadow: 0 0 6px var(--fb-orange-glow);
+}
+
+.password-status-txt {
+  color: var(--fb-text-sub);
+}
+
+/* Inline Compact Alert Notice */
+.auth-dark-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  background: var(--fb-error-bg);
+  border: 1px solid var(--fb-error-border);
+  color: var(--fb-error-text);
+}
+
+/* Submit Action Button (Electric Clementine Gradient) */
+.auth-glow-submit-btn {
+  width: 100%;
+  height: clamp(40px, 5vh, 45px);
+  background: linear-gradient(135deg, #ff5e1a 0%, #d83d00 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--fb-radius-element);
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 18px var(--fb-orange-glow);
+  margin-top: 2px;
+}
+
+.auth-glow-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff7836 0%, #ff5e1a 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 26px rgba(255, 94, 26, 0.55);
+}
+
+.auth-glow-submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.auth-glow-submit-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Compact Separator */
+.auth-micro-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: clamp(6px, 1.2vh, 12px) 0;
+  color: var(--fb-text-dim);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.auth-micro-divider::before,
+.auth-micro-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Google Sign-in Wrap */
+.auth-google-wrapper {
+  display: flex;
+  justify-content: center;
+  min-height: 38px;
+}
+
+/* Dark Mode Fallback Google Button */
+.button-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  height: clamp(38px, 4.6vh, 43px);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--fb-text-pure);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--fb-radius-element);
+  font-size: 12.5px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.button-google:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.button-google:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.google-g {
+  font-weight: 800;
+  font-size: 15px;
+  color: #4285f4;
+}
+
+.setup-hint {
+  font-size: 9.5px;
+  color: var(--fb-text-sub);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 6px;
+  border-radius: 8px;
+  margin-left: 4px;
+}
+
+/* Bottom Disclaimer / Footer */
+.auth-bottom-banner {
+  z-index: 2;
+  font-size: clamp(10px, 1.4vh, 11px);
+  color: var(--fb-text-dim);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.auth-bottom-banner span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Keyframe Animations */
+@keyframes pulse-glow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==========================================================================
+   Responsive Adaptations (Desktop, Tablet, Mobile)
+   ========================================================================== */
+
+@media (max-width: 640px) {
+  .auth-viewport-stage {
+    padding: 10px 12px;
+  }
+
+  .form-grid-2col {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .auth-card-core {
+    padding: 14px 14px;
+    border-radius: 16px;
+  }
+
+  .role-bar-btn {
+    padding: 6px 4px;
+    font-size: 10px;
+    gap: 4px;
+  }
+
+  .auth-status-chip {
+    display: none;
+  }
+}
+
+@media (max-height: 650px) {
+  .auth-viewport-stage {
+    padding: 6px 12px;
+  }
+  
+  .auth-header-bar {
+    margin-bottom: 4px;
+  }
+  
+  .auth-title-row {
+    margin-bottom: 6px;
+  }
+  
+  .auth-main-title {
+    font-size: 18px;
+  }
+  
+  .auth-sub-desc {
+    display: none;
+  }
+  
+  .auth-nav-pill-group {
+    margin-bottom: 8px;
+  }
+  
+  .role-segmented-box {
+    margin-bottom: 6px;
+  }
+  
+  .auth-bottom-banner {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Google OAuth New User Role Picker Modal
+   ========================================================================== */
+.auth-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(5, 7, 11, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.auth-modal-card {
+  width: min(100%, 480px);
+  background: rgba(14, 19, 28, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
+  padding: 24px 26px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.8), 0 0 45px rgba(255, 94, 26, 0.15);
+  position: relative;
+}
+
+.auth-modal-header {
+  margin-bottom: 18px;
+}
+
+.auth-modal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(45, 212, 191, 0.14);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  color: #2dd4bf;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.auth-modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.4px;
+}
+
+.auth-modal-subtitle {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.auth-modal-roles-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 18px 0 22px 0;
+}
+
+.auth-modal-role-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #ffffff;
+}
+
+.auth-modal-role-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.auth-modal-role-item.selected {
+  border-color: #ff5e1a;
+  background: rgba(255, 94, 26, 0.1);
+  box-shadow: 0 0 0 1px #ff5e1a, 0 4px 18px rgba(255, 94, 26, 0.22);
+}
+
+.auth-modal-role-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.auth-modal-role-item.selected .auth-modal-role-icon {
+  background: #ff5e1a;
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(255, 94, 26, 0.6);
+}
+
+.auth-modal-role-info {
+  flex: 1;
+}
+
+.auth-modal-role-name {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0 0 2px 0;
+}
+
+.auth-modal-role-desc {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.auth-modal-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.auth-modal-role-item.selected .auth-modal-check {
+  border-color: #2dd4bf;
+  background: #2dd4bf;
+  color: #080b10;
+}
+
+.auth-modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.auth-modal-confirm-btn {
+  flex: 2;
+  height: 42px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #ff5e1a 0%, #d83d00 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 18px rgba(255, 94, 26, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auth-modal-confirm-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(255, 94, 26, 0.55);
+}
+
+.auth-modal-cancel-btn {
+  flex: 1;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.auth-modal-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
