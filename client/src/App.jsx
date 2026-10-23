@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
 import AuthFrame from './components/AuthFrame.jsx';
 import LoginPage from './pages/LoginPage.jsx';
@@ -23,16 +23,14 @@ function LoadingFallback() {
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth();
-  const location = useLocation();
   if (loading) return <LoadingFallback />;
-  return session ? children : <Navigate to="/login" state={{ from: location }} replace />;
+  return session ? children : <Navigate to="/login" replace />;
 }
 
 function AuthRoute({ children }) {
   const { session, loading } = useAuth();
-  const location = useLocation();
   if (loading) return <LoadingFallback />;
-  return session ? <Navigate to={location.state?.from || '/'} replace /> : children;
+  return session ? <Navigate to="/" replace /> : children;
 }
 
 export default function App() {

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Mail, 
@@ -17,9 +17,7 @@ import { apiRequest } from '../services/api.js';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { signIn } = useAuth();
-  const returnTo = location.state?.from || '/';
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -36,16 +34,12 @@ export default function LoginPage() {
         body: JSON.stringify({ credential }),
       });
       signIn(result);
-      if (typeof returnTo === 'object') {
-        navigate(returnTo, { replace: true });
-      } else {
-        navigate(returnTo, { replace: true, state: location.state?.listing ? { listing: location.state.listing } : undefined });
-      }
+      navigate('/', { replace: true });
     } catch (requestError) {
       setError(requestError.message);
       setBusy(false);
     }
-  }, [navigate, signIn, returnTo, location.state]);
+  }, [navigate, signIn]);
 
   // Handle email/password sign-in submission
   async function submit(event) {
@@ -62,11 +56,7 @@ export default function LoginPage() {
         }),
       });
       signIn(result);
-      if (typeof returnTo === 'object') {
-        navigate(returnTo, { replace: true });
-      } else {
-        navigate(returnTo, { replace: true, state: location.state?.listing ? { listing: location.state.listing } : undefined });
-      }
+      navigate('/', { replace: true });
     } catch (requestError) {
       setError(requestError.message);
       setBusy(false);
@@ -98,7 +88,7 @@ export default function LoginPage() {
           />
           <span style={{ position: 'relative', zIndex: 1 }}>Sign in</span>
         </span>
-        <Link to="/register" state={location.state} className="auth-nav-pill-btn">
+        <Link to="/register" className="auth-nav-pill-btn">
           <span style={{ position: 'relative', zIndex: 1 }}>Create account</span>
         </Link>
       </nav>

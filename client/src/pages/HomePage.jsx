@@ -430,16 +430,16 @@ export default function HomePage() {
                             <div className="modal-actions-stack">
                                 <Link
                                     to="/login"
-                                    state={{ from: `/listings/${encodeURIComponent(selectedListing._id)}/information` }}
                                     className="btn-gate-signin"
+                                    onClick={closeModal}
                                 >
                                     <span>Sign in</span>
                                     <ArrowRight size={14} />
                                 </Link>
                                 <Link
                                     to="/register"
-                                    state={{ from: `/listings/${encodeURIComponent(selectedListing._id)}/information` }}
                                     className="btn-gate-register"
+                                    onClick={closeModal}
                                 >
                                     Create an account
                                 </Link>

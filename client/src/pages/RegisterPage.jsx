@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, 
@@ -19,9 +19,7 @@ import { apiRequest } from '../services/api.js';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { signIn } = useAuth();
-  const returnTo = location.state?.from || '/';
 
   const [form, setForm] = useState({
     name: '',
@@ -52,16 +50,12 @@ export default function RegisterPage() {
         body: JSON.stringify({ credential, role: 'member' }),
       });
       signIn(result);
-      if (typeof returnTo === 'object') {
-        navigate(returnTo, { replace: true });
-      } else {
-        navigate(returnTo, { replace: true, state: location.state?.listing ? { listing: location.state.listing } : undefined });
-      }
+      navigate('/', { replace: true });
     } catch (requestError) {
       setError(requestError.message);
       setBusy(false);
     }
-  }, [navigate, signIn, returnTo, location.state]);
+  }, [navigate, signIn]);
 
   // Submit registration form
   async function submit(event) {
@@ -90,11 +84,7 @@ export default function RegisterPage() {
         }),
       });
       signIn(result);
-      if (typeof returnTo === 'object') {
-        navigate(returnTo, { replace: true });
-      } else {
-        navigate(returnTo, { replace: true, state: location.state?.listing ? { listing: location.state.listing } : undefined });
-      }
+      navigate('/', { replace: true });
     } catch (requestError) {
       setError(requestError.message);
       setBusy(false);
@@ -118,7 +108,7 @@ export default function RegisterPage() {
 
       {/* Nav Switcher with sliding animated pill */}
       <nav className="auth-nav-pill-group" aria-label="Account navigation">
-        <Link to="/login" state={location.state} className="auth-nav-pill-btn">
+        <Link to="/login" className="auth-nav-pill-btn">
           <span style={{ position: 'relative', zIndex: 1 }}>Sign in</span>
         </Link>
         <span className="auth-nav-pill-btn active">

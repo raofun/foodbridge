@@ -67,14 +67,6 @@ const FOOD_CONDITIONS = [
 
 const COMMON_PORTION_UNITS = ['boxes', 'servings', 'packets', 'kg', 'platters', 'portions'];
 
-const STORAGE_QUICK_PRESETS = [
-  'Kept refrigerated at 4°C in food-grade sealed containers',
-  'Stored in insulated thermal carriers at room temperature',
-  'Kept in airtight containers in clean dry pantry',
-  'Deep frozen immediately after preparation at -18°C',
-  'Sealed in factory tamper-evident individual packaging',
-];
-
 const DIETARY_ALLERGEN_TAGS = [
   { id: 'halal', label: '100% Halal', type: 'dietary', icon: '☪️' },
   { id: 'vegetarian', label: 'Vegetarian', type: 'dietary', icon: '🥦' },
@@ -84,14 +76,6 @@ const DIETARY_ALLERGEN_TAGS = [
   { id: 'gluten', label: 'Contains Gluten / Wheat', type: 'allergen', icon: '🌾' },
   { id: 'egg', label: 'Contains Eggs', type: 'allergen', icon: '🥚' },
   { id: 'seafood', label: 'Contains Fish / Seafood', type: 'allergen', icon: '🐟' },
-];
-
-const PHOTO_PRESETS = [
-  { label: 'Biryani / Rice', url: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=720&auto=format&fit=crop&q=80' },
-  { label: 'Khichuri & Curry', url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=720&auto=format&fit=crop&q=80' },
-  { label: 'Artisan Breads', url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=720&auto=format&fit=crop&q=80' },
-  { label: 'Fresh Produce', url: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=720&auto=format&fit=crop&q=80' },
-  { label: 'Dairy & Sweets', url: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=720&auto=format&fit=crop&q=80' },
 ];
 
 function toLocalDateTime(value) {
@@ -140,8 +124,8 @@ export default function FoodInformationPage() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
-  const communityListing = location.state?.listing;
-  const isCommunityListing = listingId?.startsWith('comm-') || Boolean(communityListing);
+  const [communityListing, setCommunityListing] = useState(() => location.state?.listing || null);
+  const isCommunityListing = Boolean(communityListing);
 
   const [currentTime, setCurrentTime] = useState(() => new Date());
 
@@ -155,22 +139,22 @@ export default function FoodInformationPage() {
     category: 'meals',
     description: '',
     photoUrl: '',
-    quantity: '10',
-    portionUnit: 'boxes',
+    quantity: '',
+    portionUnit: '',
     preparedAt: toLocalDateTime(new Date()),
     pickupDeadline: defaultPickupDeadline(),
-    storageDetails: 'Kept refrigerated at 4°C in sealed food-grade containers',
+    storageDetails: '',
     foodCondition: 'fresh',
     useByAt: '',
     safetyNotes: '',
-    selectedTags: ['halal'],
+    selectedTags: [],
   });
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [photoMode, setPhotoMode] = useState('upload'); // 'upload' | 'url' | 'presets'
+  const [photoMode, setPhotoMode] = useState('upload'); // 'upload' | 'url'
 
   const set = (key, value) => {
     setForm(current => ({ ...current, [key]: value }));
@@ -178,7 +162,8 @@ export default function FoodInformationPage() {
   };
 
   useEffect(() => {
-    if (isCommunityListing) {
+    // If route already passed community listing, display it directly
+    if (communityListing) {
       setLoading(false);
       return;
     }
@@ -189,17 +174,25 @@ export default function FoodInformationPage() {
       return;
     }
 
-    // Fetch existing draft listing from server
-    apiRequest(`/listings/${listingId}`, { token: session?.token })
-      .then(({ listing }) => {
+    // Fetch existing listing from server
+    apiRequest(`/listings/${listingId}/information`, { token: session?.token })
+      .then(({ listing, isOwner, isDraft }) => {
         if (!listing) throw new Error('Listing not found');
+
+        // If it's a published community listing (available or closed), render the Food Safety Passport
         if (listing.status !== 'draft') {
-          navigate('/listings/mine', { replace: true });
+          setCommunityListing(listing);
+          return;
+        }
+
+        // If draft and user is not the owner
+        if (isDraft && !isOwner) {
+          setError('Only the creator can edit this food information draft.');
           return;
         }
 
         // Parse any tags from safetyNotes if present
-        let parsedTags = ['halal'];
+        let parsedTags = [];
         let cleanNotes = listing.safetyNotes || '';
         const tagMatch = cleanNotes.match(/^\[Tags:\s*([^\]]+)\]\s*(.*)$/s);
         if (tagMatch) {
@@ -214,11 +207,11 @@ export default function FoodInformationPage() {
           category: listing.category || 'meals',
           description: listing.description || '',
           photoUrl: listing.photoUrl || '',
-          quantity: String(listing.quantity || 10),
-          portionUnit: listing.portionUnit || 'boxes',
+          quantity: listing.quantity !== undefined && listing.quantity !== null ? String(listing.quantity) : '',
+          portionUnit: listing.portionUnit || '',
           preparedAt: toLocalDateTime(listing.preparedAt) || toLocalDateTime(new Date()),
           pickupDeadline: initialDeadline ? toLocalDateTime(initialDeadline) : defaultPickupDeadline(),
-          storageDetails: listing.storageDetails || 'Kept refrigerated at 4°C in sealed containers',
+          storageDetails: listing.storageDetails || '',
           foodCondition: listing.foodCondition || 'fresh',
           useByAt: toLocalDateTime(listing.useByAt),
           safetyNotes: cleanNotes,
@@ -226,10 +219,10 @@ export default function FoodInformationPage() {
         });
       })
       .catch(e => {
-        setError(e.message || 'Failed to load food listing draft.');
+        setError(e.message || 'Failed to load food information.');
       })
       .finally(() => setLoading(false));
-  }, [isCommunityListing, listingId, navigate, session?.token]);
+  }, [communityListing, listingId, navigate, session?.token]);
 
   // Quick timestamp helpers
   const setQuickPrepTime = (offsetHours = 0) => {
@@ -756,13 +749,6 @@ export default function FoodInformationPage() {
                     >
                       Image URL
                     </button>
-                    <button
-                      type="button"
-                      className={`mode-tab-btn ${photoMode === 'presets' ? 'active' : ''}`}
-                      onClick={() => setPhotoMode('presets')}
-                    >
-                      Sample Presets
-                    </button>
                   </div>
                 </div>
 
@@ -841,29 +827,6 @@ export default function FoodInformationPage() {
                     {form.photoUrl && (
                       <button type="button" className="btn-clear-inline" onClick={clearPhoto}>
                         Clear
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {/* Sample Presets Mode */}
-                {photoMode === 'presets' && (
-                  <div className="photo-presets-palette">
-                    {PHOTO_PRESETS.map((preset) => (
-                      <button
-                        type="button"
-                        key={preset.label}
-                        className={`preset-thumb-btn ${form.photoUrl === preset.url ? 'active' : ''}`}
-                        onClick={() => set('photoUrl', preset.url)}
-                      >
-                        <img src={preset.url} alt={preset.label} className="preset-thumb-img" />
-                        <span className="preset-thumb-caption">{preset.label}</span>
-                      </button>
-                    ))}
-                    {form.photoUrl && (
-                      <button type="button" className="preset-clear-btn" onClick={clearPhoto}>
-                        <Trash2 size={13} />
-                        <span>Clear Selected</span>
                       </button>
                     )}
                   </div>
@@ -1048,20 +1011,6 @@ export default function FoodInformationPage() {
                   onChange={(e) => set('storageDetails', e.target.value)}
                   disabled={busy}
                 />
-                
-                <div className="storage-presets-row">
-                  <span className="chips-hint-text">Quick presets:</span>
-                  {STORAGE_QUICK_PRESETS.map((preset, idx) => (
-                    <button
-                      type="button"
-                      key={idx}
-                      className="storage-preset-pill"
-                      onClick={() => set('storageDetails', preset)}
-                    >
-                      {preset.split(' at ')[0]}
-                    </button>
-                  ))}
-                </div>
               </div>
             </div>
 
@@ -1221,7 +1170,7 @@ export default function FoodInformationPage() {
 
                   <DonorProfileSection
                     donor={{ name: session?.user?.name || 'You (Donor)', role: session?.user?.role || 'Member' }}
-                    pickupLocation="Your Community Kitchen"
+                    pickupLocation={session?.user?.location || 'Community Location'}
                     size="compact"
                     className="preview-donor-profile"
                   />

@@ -546,68 +546,6 @@
   cursor: pointer;
 }
 
-.photo-presets-palette {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-}
-
-.preset-thumb-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: 6px;
-  cursor: pointer;
-  transition: all 160ms ease;
-}
-
-.preset-thumb-btn:hover {
-  border-color: rgba(16, 185, 129, 0.4);
-  transform: translateY(-1px);
-}
-
-.preset-thumb-btn.active {
-  border-color: #10b981;
-  background: rgba(16, 185, 129, 0.12);
-}
-
-.preset-thumb-img {
-  width: 54px;
-  height: 42px;
-  border-radius: 6px;
-  object-fit: cover;
-}
-
-.preset-thumb-caption {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--fb-text-sub, #94a3b8);
-}
-
-.preset-clear-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: transparent;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #f87171;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  height: 54px;
-}
-
-.preset-clear-btn:hover {
-  background: rgba(239, 68, 68, 0.1);
-}
-
 /* Quick Time Chips */
 .quick-time-chips {
   display: flex;
@@ -714,31 +652,6 @@
   color: var(--fb-text-dim, #64748b);
   margin: 0;
   line-height: 1.4;
-}
-
-.storage-presets-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.storage-preset-pill {
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 500;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  color: var(--fb-text-sub, #94a3b8);
-  cursor: pointer;
-  transition: all 140ms ease;
-}
-
-.storage-preset-pill:hover {
-  background: rgba(255, 255, 255, 0.09);
-  color: var(--fb-text-pure, #ffffff);
 }
 
 /* Dietary & Allergen Tags Wrap */
