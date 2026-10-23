@@ -17,7 +17,7 @@ export default function FoodInformationPage() {
   const { session } = useAuth();
   const navigate = useNavigate();
   const communityListing = location.state?.listing;
-  const isCommunityListing = listingId?.startsWith('comm-');
+  const isCommunityListing = listingId?.startsWith('comm-') || Boolean(communityListing);
   const [form, setForm] = useState({ preparedAt: '', storageDetails: '', foodCondition: 'fresh', useByAt: '', safetyNotes: '' });
   const [loading, setLoading] = useState(true);
   const [listingLoaded, setListingLoaded] = useState(false);

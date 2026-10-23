@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import {
     Sparkles,
     UtensilsCrossed,
@@ -7,199 +7,140 @@ import {
     Clock,
     X,
     ArrowRight,
-    ChefHat
+    ChefHat,
+    RotateCw,
+    AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
-import { apiRequest } from '../services/api.js';
 import './HomePage.css';
 
-// Active community surplus food listings
-const COMMUNITY_LISTINGS = [
-    {
-        _id: 'comm-1',
-        foodName: 'Vegetable Biryani & Golden Dahl',
-        description: 'Fragrant basmati rice with farm vegetables, warm spices, and slow-simmered yellow lentil soup. Packed in separate eco-friendly meal containers.',
-        photoUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=480&h=320&auto=format&fit=crop&q=70&fm=webp',
-        category: 'meals',
-        quantity: 16,
-        portionUnit: 'portions',
-        foodCondition: 'freshly cooked',
-        storageDetails: 'Kept in warm-holding cabinet at 65°C; consume or refrigerate within 2 hours of pickup.',
-        safetyNotes: '100% Vegetarian, nut-free. Prepared in a certified commercial kitchen.',
-        pickupLocation: '428 Market St, Kitchen Back Entrance',
-        pickupWindow: 'Today · 2:30 – 5:30 PM',
-        donor: {
-            name: 'Chef Marcus Rivera',
-            role: 'Green Table Bistro',
-            avatar: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=96&h=96&auto=format&fit=crop&q=75&fm=webp',
-            location: 'Downtown · 0.8 mi',
-            verified: true,
-        },
-        tags: ['Vegetarian', 'Warm Meal', 'Commercial Kitchen'],
-    },
-    {
-        _id: 'comm-2',
-        foodName: 'Artisan Sourdough & Country Baguettes',
-        description: 'Naturally fermented rustic sourdough loaves with crisp crust and open crumb, baked fresh this morning from stone-ground organic flour.',
-        photoUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=480&h=320&auto=format&fit=crop&q=70&fm=webp',
-        category: 'bakery',
-        quantity: 14,
-        portionUnit: 'loaves',
-        foodCondition: 'baked today',
-        storageDetails: 'Paper wrapped, room temperature. Best enjoyed within 48 hours or freeze.',
-        safetyNotes: 'Contains wheat gluten. Dairy-free, egg-free, vegan.',
-        pickupLocation: '19 Birch Lane, Hearth & Flour Bakery',
-        pickupWindow: 'Today · 3:00 – 7:00 PM',
-        donor: {
-            name: 'Elena Rostova',
-            role: 'Hearth & Flour Bakery',
-            avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=96&h=96&auto=format&fit=crop&q=75&fm=webp',
-            location: 'Old Town · 1.2 mi',
-            verified: true,
-        },
-        tags: ['Vegan', 'Baked Today', 'Fresh Sourdough'],
-    },
-    {
-        _id: 'comm-3',
-        foodName: 'Crisp Honeycrisp Apples & Bartlett Pears',
-        description: 'Freshly harvested orchard apples and sweet pears. Clean, sorted, and boxed in sturdy cardboard fruit trays for community groups and families.',
-        photoUrl: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=480&h=320&auto=format&fit=crop&q=70&fm=webp',
-        category: 'produce',
-        quantity: 6,
-        portionUnit: 'crates (~24 kg)',
-        foodCondition: 'fresh produce',
-        storageDetails: 'Stored in cool, shaded room at 10°C.',
-        safetyNotes: 'Locally grown, unsprayed harvest. Washed and inspected before packing.',
-        pickupLocation: '84 Orchard Way, Farm Stand Gate 2',
-        pickupWindow: 'Today · 1:00 – 6:00 PM',
-        donor: {
-            name: 'Sarah Chen',
-            role: 'Valley Community Orchard',
-            avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=96&h=96&auto=format&fit=crop&q=75&fm=webp',
-            location: 'Greenview · 2.1 mi',
-            verified: true,
-        },
-        tags: ['Organic', 'Fresh Produce', 'Bulk Fruit'],
-    },
-    {
-        _id: 'comm-4',
-        foodName: 'Hearty Tuscan White Bean & Kale Soup',
-        description: 'Simmered cannellini beans, tender lacinato kale, fire-roasted tomatoes, and garden rosemary. Chilled immediately in 1-liter deli containers.',
-        photoUrl: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=480&h=320&auto=format&fit=crop&q=70&fm=webp',
-        category: 'meals',
-        quantity: 22,
-        portionUnit: 'containers',
-        foodCondition: 'refrigerated',
-        storageDetails: 'Rapidly chilled and held at 3°C. Ready to reheat thoroughly above 74°C.',
-        safetyNotes: 'Vegan, gluten-free, low sodium. Contains celery.',
-        pickupLocation: '110 Peace St, Fellowship Hall Side Door',
-        pickupWindow: 'Today · 4:00 – 7:30 PM',
-        donor: {
-            name: 'St. Jude Community Kitchen',
-            role: 'Non-Profit Kitchen',
-            avatar: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=96&h=96&auto=format&fit=crop&q=75&fm=webp',
-            location: 'Central District · 0.5 mi',
-            verified: true,
-        },
-        tags: ['Vegan', 'Gluten-Free', 'Chilled & Labeled'],
-    },
-    {
-        _id: 'comm-5',
-        foodName: 'Assorted Morning Pastries & Croissants',
-        description: 'Crispy butter croissants, chocolate pain au chocolat, and almond brioche rolls from morning cafe display, packed safely in bakery boxes.',
-        photoUrl: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=480&h=320&auto=format&fit=crop&q=70&fm=webp',
-        category: 'bakery',
-        quantity: 20,
-        portionUnit: 'pastries',
-        foodCondition: 'baked today',
-        storageDetails: 'Keep in dry, ambient room temperature. Can be warmed before serving.',
-        safetyNotes: 'Contains dairy, wheat, eggs, tree nuts (almonds).',
-        pickupLocation: '504 Riverfront Blvd, Morning Light Cafe',
-        pickupWindow: 'Today · 2:00 – 6:00 PM',
-        donor: {
-            name: 'David Miller',
-            role: 'Morning Light Cafe',
-            avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=96&h=96&auto=format&fit=crop&q=75&fm=webp',
-            location: 'Riverfront · 1.5 mi',
-            verified: false,
-        },
-        tags: ['Breakfast', 'Bakery Surplus', 'Cafe Partner'],
-    },
-    {
-        _id: 'comm-6',
-        foodName: 'Mediterranean Lemon Herb Chicken & Rice',
-        description: 'Herb-marinated chicken breast fillets with spiced yellow basmati rice and roasted sweet peppers. Prepared for a private banquet with surplus trays.',
-        photoUrl: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=480&h=320&auto=format&fit=crop&q=70&fm=webp',
-        category: 'meals',
-        quantity: 12,
-        portionUnit: 'family trays',
-        foodCondition: 'refrigerated',
-        storageDetails: 'Kept chilled at 2°C in walk-in cooler. Labeled with preparation timestamp.',
-        safetyNotes: 'Halal certified chicken. Nut-free, peanut-free.',
-        pickupLocation: '330 Commerce Rd, Catering Suite 4',
-        pickupWindow: 'Today · 3:30 – 6:30 PM',
-        donor: {
-            name: 'Priya Sharma',
-            role: 'Olive & Thyme Catering',
-            avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=96&h=96&auto=format&fit=crop&q=75&fm=webp',
-            location: 'Eastside · 1.9 mi',
-            verified: true,
-        },
-        tags: ['Halal', 'High Protein', 'Catering Quality'],
-    },
-];
+function formatPickupWindow(opensAt, closesAt, status) {
+    const now = new Date();
+    const close = closesAt ? new Date(closesAt) : null;
+    const open = opensAt ? new Date(opensAt) : null;
+    const timeOpts = { hour: 'numeric', minute: '2-digit' };
+
+    // 1. Check if expired (either status is closed or closesAt has passed)
+    const isExpired = status === 'closed' || (close && close < now);
+    if (isExpired) {
+        if (close) {
+            return {
+                text: `Expired · Closed at ${close.toLocaleTimeString([], timeOpts)}`,
+                isExpired: true,
+                badgeClass: 'expired',
+            };
+        }
+        return {
+            text: 'Expired · Window closed',
+            isExpired: true,
+            badgeClass: 'expired',
+        };
+    }
+
+    // 2. Flexible window (no fixed timestamps)
+    if (!open && !close) {
+        return {
+            text: 'Flexible pickup window',
+            isExpired: false,
+            badgeClass: 'flexible',
+        };
+    }
+
+    if (!open && close) {
+        return {
+            text: `Flexible · Until ${close.toLocaleTimeString([], timeOpts)}`,
+            isExpired: false,
+            badgeClass: 'flexible',
+        };
+    }
+
+    // 3. Day prefix (Today, Tomorrow, or specific day)
+    const isToday = open.toDateString() === now.toDateString();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+    const isTomorrow = open.toDateString() === tomorrow.toDateString();
+
+    const dayPrefix = isToday
+        ? 'Today'
+        : isTomorrow
+        ? 'Tomorrow'
+        : open.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+
+    if (close) {
+        const isSameDay = open.toDateString() === close.toDateString();
+        if (isSameDay) {
+            return {
+                text: `${dayPrefix} · ${open.toLocaleTimeString([], timeOpts)} – ${close.toLocaleTimeString([], timeOpts)}`,
+                isExpired: false,
+                badgeClass: 'standard',
+            };
+        }
+        const closeDayPrefix = close.toDateString() === tomorrow.toDateString()
+            ? 'Tomorrow'
+            : close.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+        return {
+            text: `${dayPrefix} ${open.toLocaleTimeString([], timeOpts)} – ${closeDayPrefix} ${close.toLocaleTimeString([], timeOpts)}`,
+            isExpired: false,
+            badgeClass: 'standard',
+        };
+    }
+
+    return {
+        text: `${dayPrefix} · from ${open.toLocaleTimeString([], timeOpts)}`,
+        isExpired: false,
+        badgeClass: 'standard',
+    };
+}
 
 export default function HomePage() {
     const { session } = useAuth();
     const navigate = useNavigate();
+    const { feedListings, feedLoading: loading, feedError: error, reloadFeed } = useOutletContext();
     const [activeCategory, setActiveCategory] = useState('all');
-    const [userListings, setUserListings] = useState([]);
 
     // Modal State
     const [selectedListing, setSelectedListing] = useState(null);
     const [modalType, setModalType] = useState(null);
 
-    // Fetch real listings created by logged in user
-    useEffect(() => {
-        if (session?.token) {
-            apiRequest('/listings/mine', { token: session.token })
-                .then(({ listings }) => {
-                    if (listings && listings.length > 0) {
-                        const formatted = listings.map(item => ({
-                            ...item,
-                            category: 'meals',
-                            pickupWindow: item.pickupOpensAt
-                                ? `Today · ${new Date(item.pickupOpensAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} – ${new Date(item.pickupClosesAt || item.pickupOpensAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
-                                : 'Flexible pickup window',
-                            donor: {
-                                name: session.user.name,
-                                role: 'Your Kitchen Donation',
-                                avatar: '',
-                                location: item.pickupLocation || 'Your specified location',
-                                verified: true,
-                            },
-                            tags: ['Your Listing', item.foodCondition || 'Fresh'],
-                        }));
-                        setUserListings(formatted);
-                    }
-                })
-                .catch(() => { });
-        }
-    }, [session]);
+    // Live active donations count (excluding expired/closed)
+    const activeCount = useMemo(() => {
+        const now = new Date();
+        return feedListings.filter(item => item.status === 'available' && (!item.pickupClosesAt || new Date(item.pickupClosesAt) > now)).length;
+    }, [feedListings]);
 
-    // Combine user listings and community listings
-    const allListings = useMemo(() => {
-        return [...userListings, ...COMMUNITY_LISTINGS];
-    }, [userListings]);
-
-    // Filter listings based on category
+    // Filter listings based on active category pill and sort expired to the bottom
     const filteredListings = useMemo(() => {
-        return allListings.filter(item => {
+        const now = new Date();
+        const isItemExpired = (item) => {
+            return item.status === 'closed' || (item.pickupClosesAt && new Date(item.pickupClosesAt) < now);
+        };
+
+        const matching = feedListings.filter(item => {
             return activeCategory === 'all' || item.category === activeCategory;
         });
-    }, [allListings, activeCategory]);
+
+        // Active listings first, expired listings automatically pushed to the bottom of the menu
+        return [...matching].sort((a, b) => {
+            const aExpired = isItemExpired(a);
+            const bExpired = isItemExpired(b);
+            if (aExpired && !bExpired) return 1;
+            if (!aExpired && bExpired) return -1;
+            return 0;
+        });
+    }, [feedListings, activeCategory]);
+
+    const visibleAvailableCount = useMemo(() => {
+        const now = new Date();
+        return filteredListings.filter(item =>
+            item.status === 'available' && (!item.pickupClosesAt || new Date(item.pickupClosesAt) > now)
+        ).length;
+    }, [filteredListings]);
 
     const openListing = (listing) => {
+        const now = new Date();
+        const isExpired = listing.status === 'closed' || (listing.pickupClosesAt && new Date(listing.pickupClosesAt) < now);
+        if (isExpired) return;
+
         const pathname = `/listings/${encodeURIComponent(listing._id)}/information`;
         if (!session) {
             setSelectedListing(listing);
@@ -246,7 +187,7 @@ export default function HomePage() {
                     <div className="home-metrics-row">
                         <div className="metric-chip">
                             <span className="dot-live" />
-                            <span><strong>18+</strong> Active Donations</span>
+                            <span><strong>{activeCount}</strong> Active Donations</span>
                         </div>
                         <div className="metric-chip">
                             <span><strong>&lt; 2 hrs</strong> Average Pickup</span>
@@ -272,7 +213,7 @@ export default function HomePage() {
                         {session ? (
                             <>
                                 <Link to="/listings/new" className="btn-hero-orange">
-                                    <span>＋ List Surplus Food</span>
+                                    <span>＋ Create Listing</span>
                                     <ArrowRight size={15} />
                                 </Link>
                                 <a href="#browse-feed" className="btn-hero-glass">
@@ -334,72 +275,123 @@ export default function HomePage() {
             <div className="feed-header-row">
                 <h2>
                     <span>Live Surplus Food Feed</span>
-                    <span className="feed-count-pill">{filteredListings.length} Ready</span>
+                    <span className="feed-count-pill">{visibleAvailableCount} Available</span>
                 </h2>
                 <p>Verified food donations ready for collection</p>
             </div>
 
+            {/* Loading Skeleton State */}
+            {loading && (
+                <div className="food-listings-grid">
+                    {[1, 2, 3, 4, 5, 6].map((key) => (
+                        <div className="food-listing-card" key={key} style={{ opacity: 0.6, pointerEvents: 'none' }}>
+                            <div className="card-photo-box" style={{ background: 'rgba(255,255,255,0.04)' }} />
+                            <div className="card-content-body" style={{ padding: '20px', gap: '12px' }}>
+                                <div style={{ height: '18px', background: 'rgba(255,255,255,0.08)', borderRadius: '6px', width: '70%' }} />
+                                <div style={{ height: '14px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', width: '90%' }} />
+                                <div style={{ height: '36px', background: 'rgba(255,255,255,0.06)', borderRadius: '10px', marginTop: '10px' }} />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Error State */}
+            {!loading && error && (
+                <div className="panel" style={{ padding: '32px 24px', textAlign: 'center', margin: '16px 0', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
+                    <AlertCircle size={32} style={{ color: '#f87171', margin: '0 auto 12px' }} />
+                    <h3 style={{ margin: '0 0 8px 0', fontSize: '17px', color: '#ffffff' }}>Unable to load surplus food</h3>
+                    <p style={{ margin: '0 0 16px 0', color: 'var(--fb-text-sub)', fontSize: '13px' }}>{error}</p>
+                    <button type="button" onClick={reloadFeed} className="button button-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', margin: '0 auto' }}>
+                        <RotateCw size={14} />
+                        <span>Try Again</span>
+                    </button>
+                </div>
+            )}
+
             {/* Food Listings Feed Grid */}
-            <div className="food-listings-grid">
-                {filteredListings.map((item) => (
-                    <article className="food-listing-card" key={item._id}>
-                        {/* Food Photo Box */}
-                        <div className="card-photo-box">
-                            <img
-                                src={item.photoUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=480&h=320&auto=format&fit=crop&q=70&fm=webp'}
-                                alt={item.foodName}
-                                className="card-photo-img"
-                                loading="lazy"
-                                decoding="async"
-                            />
-                            <span className="card-condition-pill">
-                                ⚡ {item.foodCondition || 'fresh'}
-                            </span>
-                            <span className="card-time-pill">
-                                <Clock size={12} />
-                                <span>{item.pickupWindow}</span>
-                            </span>
-                        </div>
+            {!loading && !error && (
+                <div className="food-listings-grid">
+                    {filteredListings.map((item) => {
+                        const timeInfo = formatPickupWindow(item.pickupOpensAt, item.pickupClosesAt, item.status);
+                        return (
+                            <article className={`food-listing-card ${timeInfo.isExpired ? 'expired-card' : ''}`} key={item._id}>
+                                {/* Food Photo Box */}
+                                <div className="card-photo-box">
+                                    <img
+                                        src={item.photoUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=480&h=320&auto=format&fit=crop&q=70&fm=webp'}
+                                        alt={item.foodName}
+                                        className="card-photo-img"
+                                        loading="lazy"
+                                        decoding="async"
+                                    />
+                                    <span className={`card-condition-pill ${timeInfo.isExpired ? 'expired' : ''}`}>
+                                        {timeInfo.isExpired ? '⌛ Closed' : `⚡ ${item.foodCondition || 'fresh'}`}
+                                    </span>
+                                    <span className={`card-time-pill ${timeInfo.badgeClass}`}>
+                                        <Clock size={12} />
+                                        <span>{timeInfo.text}</span>
+                                    </span>
+                                </div>
 
-                        {/* Card Content Body */}
-                        <div className="card-content-body">
-                            <div className="card-food-info">
-                                <h3 className="food-title-text">{item.foodName}</h3>
-                                <p className="food-desc-text">{item.description}</p>
-                            </div>
+                                {/* Card Content Body */}
+                                <div className="card-content-body">
+                                    <div className="card-food-info">
+                                        <h3 className="food-title-text">{item.foodName}</h3>
+                                        <p className="food-desc-text">{item.description}</p>
+                                    </div>
 
-                            <div className="card-summary-row">
-                                <span className="pill-portion">
-                                    <UtensilsCrossed size={12} />
-                                    <span>{item.quantity} {item.portionUnit}</span>
-                                </span>
-                                <span className="card-neighborhood">
-                                    <MapPin size={12} />
-                                    <span>{item.donor.location}</span>
-                                </span>
-                            </div>
+                                    <div className="card-summary-row">
+                                        <span className="pill-portion">
+                                            <UtensilsCrossed size={12} />
+                                            <span>{item.quantity} {item.portionUnit}</span>
+                                        </span>
+                                        <span className="card-neighborhood">
+                                            <MapPin size={12} />
+                                            <span>{item.pickupLocation || item.donor?.location || 'Community Location'}</span>
+                                        </span>
+                                    </div>
 
-                            <div className="card-buttons-footer">
-                                <button
-                                    type="button"
-                                    className="btn-card-receive"
-                                    onClick={() => openListing(item)}
-                                >
-                                    <span>View more to receive</span>
-                                    <ArrowRight size={13} />
-                                </button>
-                            </div>
-                        </div>
-                    </article>
-                ))}
-            </div>
+                                    <div className="card-buttons-footer">
+                                        {timeInfo.isExpired ? (
+                                            <button
+                                                type="button"
+                                                className="btn-card-receive expired-btn"
+                                                disabled
+                                                aria-disabled="true"
+                                                tabIndex={-1}
+                                                title="Pickup window for this surplus donation has passed"
+                                            >
+                                                <span>Pickup Expired</span>
+                                            </button>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className="btn-card-receive"
+                                                onClick={() => openListing(item)}
+                                            >
+                                                <span>View more to receive</span>
+                                                <ArrowRight size={13} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </article>
+                        );
+                    })}
+                </div>
+            )}
 
             {/* Empty State */}
-            {filteredListings.length === 0 && (
+            {!loading && !error && filteredListings.length === 0 && (
                 <div className="panel" style={{ padding: '40px 20px', textAlign: 'center', marginTop: '16px' }}>
-                    <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#ffffff' }}>No surplus food in this category</h3>
+                    <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#ffffff' }}>
+                        {feedListings.length === 0 ? 'No surplus food currently available' : 'No surplus food in this category'}
+                    </h3>
                     <p style={{ margin: 0, color: 'var(--fb-text-sub)', fontSize: '13px' }}>
-                        Select "All Surplus" above to browse all active donations.
+                        {feedListings.length === 0
+                            ? 'The community feed is currently empty. Check back soon or list surplus food to share.'
+                            : 'Select "All Surplus" above to browse all active donations.'}
                     </p>
                 </div>
             )}
@@ -426,7 +418,7 @@ export default function HomePage() {
                             <div className="modal-actions-stack">
                                 <Link
                                     to="/login"
-                                    state={{ from: { pathname: `/listings/${encodeURIComponent(selectedListing._id)}/information`, state: { listing: selectedListing } } }}
+                                    state={{ from: `/listings/${encodeURIComponent(selectedListing._id)}/information` }}
                                     className="btn-gate-signin"
                                 >
                                     <span>Sign in</span>
@@ -434,7 +426,7 @@ export default function HomePage() {
                                 </Link>
                                 <Link
                                     to="/register"
-                                    state={{ from: { pathname: `/listings/${encodeURIComponent(selectedListing._id)}/information`, state: { listing: selectedListing } } }}
+                                    state={{ from: `/listings/${encodeURIComponent(selectedListing._id)}/information` }}
                                     className="btn-gate-register"
                                 >
                                     Create an account

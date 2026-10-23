@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { connectDB } from './config/db.js';
+import { seedBangladeshiListings } from './config/seedBangladeshiData.js';
 import errorHandler from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.js';
 import listingRoutes from './routes/listings.js';
@@ -32,6 +33,7 @@ async function start() {
   }
 
   await connectDB();
+  await seedBangladeshiListings();
   app.listen(port, () => console.log(`FoodBridge API running at http://localhost:${port}`));
 }
 

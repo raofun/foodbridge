@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { NavLink, Outlet, useLocation, Link } from 'react-router-dom';
 import {
     UtensilsCrossed,
@@ -12,12 +12,40 @@ import {
     HeartHandshake
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { apiRequest } from '../services/api.js';
 import '../styles/homeLayout.css';
 
 export default function HomeLayout() {
     const { session, signOut } = useAuth();
     const location = useLocation();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [feedListings, setFeedListings] = useState([]);
+    const [feedLoading, setFeedLoading] = useState(true);
+    const [feedError, setFeedError] = useState('');
+
+    // Keep one feed request for the layout and homepage in sync.
+    const reloadFeed = useCallback(async (signal) => {
+        setFeedLoading(true);
+        setFeedError('');
+        try {
+            const { listings } = await apiRequest('/listings/feed', { signal });
+            const items = listings || [];
+            setFeedListings(items);
+        } catch (error) {
+            if (signal?.aborted) return;
+            setFeedError(error.message || 'Unable to load community listings.');
+            setFeedListings([]);
+        } finally {
+            if (!signal?.aborted) setFeedLoading(false);
+        }
+    }, []);
+
+    // Refresh the feed on route changes, matching the existing refresh behavior.
+    useEffect(() => {
+        const controller = new AbortController();
+        reloadFeed(controller.signal);
+        return () => controller.abort();
+    }, [location.pathname, reloadFeed]);
 
     // Close mobile drawer when route changes
     useEffect(() => {
@@ -148,83 +176,82 @@ export default function HomeLayout() {
                             </span>
                         </NavLink>
 
-                        <NavLink
-                            to="/listings/new"
-                            className={({ isActive }) =>
-                                `nav-item${isActive || location.pathname.startsWith('/create-listing') ? ' selected' : ''}`
-                            }
-                        >
-                            <div className="nav-icon-box">
-                                <PlusCircle size={15} />
-                            </div>
-                            <span className="nav-title">Create Listing</span>
-                            <span className="nav-pill-action">＋ New</span>
-                        </NavLink>
-                    </div>
-
-                    {/* Community Impact Pulse */}
-                    <div className="sidebar-pulse-card">
-                        <div className="pulse-header">
-                            <HeartHandshake size={14} className="pulse-icon" />
-                            <span>Community Pulse</span>
-                        </div>
-                        <div className="pulse-stats-grid">
-                            <div className="pulse-stat">
-                                <span className="stat-number">18+</span>
-                                <span className="stat-label">Active Meals</span>
-                            </div>
-                            <div className="pulse-stat">
-                                <span className="stat-number">100%</span>
-                                <span className="stat-label">Free Rescue</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Guest Call to Action */}
-                    {!session ? (
-                        <div className="sidebar-cta-card">
-                            <div className="cta-icon-pill">
-                                <Sparkles size={12} />
-                                <span>ZERO FOOD WASTE</span>
-                            </div>
-                            <h4>Rescue. Share. Nourish.</h4>
-                            <p>
-                                Connect surplus food with local community members and shelters.
-                            </p>
-                            <Link to="/register" className="btn-sidebar-join">
-                                <span>Get Started Free</span>
-                                <ArrowRight size={13} />
-                            </Link>
-                        </div>
-                    ) : (
-                        <div className="sidebar-user-card">
-                            <div className="sidebar-user-avatar">
-                                {session.user?.name ? session.user.name.charAt(0).toUpperCase() : 'U'}
-                            </div>
-                            <div className="sidebar-user-meta">
-                                <span className="sidebar-user-name">{session.user?.name}</span>
-                                <span className="sidebar-user-role">{session.user?.role ? session.user.role.charAt(0).toUpperCase() + session.user.role.slice(1) : 'Member'}</span>
-                            </div>
-                            <button
-                                type="button"
-                                className="sidebar-user-logout"
-                                onClick={signOut}
-                                title="Sign out"
-                                aria-label="Sign out"
+                        {session && (
+                            <NavLink
+                                to="/listings/new"
+                                className={({ isActive }) =>
+                                    `nav-item${isActive || location.pathname.startsWith('/create-listing') ? ' selected' : ''}`
+                                }
                             >
-                                <LogOut size={14} />
-                            </button>
-                        </div>
-                    )}
+                                <div className="nav-icon-box">
+                                    <PlusCircle size={15} />
+                                </div>
+                                <span className="nav-title">Create Listing</span>
+                                <span className="nav-pill-action">＋ New</span>
+                            </NavLink>
+                        )}
+                    </div>
 
-                    {/* Quote */}
-                    <div className="sidebar-footer-quote">
-                        <p>"No good food wasted. No neighbor hungry."</p>
+                    <div className="sidebar-bottom-group">
+                        {/* Community Pulse stays with the account actions at the sidebar bottom. */}
+                        <div className="sidebar-pulse-card">
+                            <div className="pulse-header">
+                                <HeartHandshake size={14} className="pulse-icon" />
+                                <span>Community Pulse</span>
+                            </div>
+                            <div className="pulse-stats-grid">
+                                <div className="pulse-stat">
+                                    <span className="stat-number">{feedListings.length}</span>
+                                    <span className="stat-label">Total Meals</span>
+                                </div>
+                                <div className="pulse-stat">
+                                    <span className="stat-number">100%</span>
+                                    <span className="stat-label">Free Rescue</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Keep the signed-in profile anchored at the very bottom. */}
+                        {!session ? (
+                            <div className="sidebar-cta-card">
+                                <div className="cta-icon-pill">
+                                    <Sparkles size={12} />
+                                    <span>ZERO FOOD WASTE</span>
+                                </div>
+                                <h4>Rescue. Share. Nourish.</h4>
+                                <p>
+                                    Connect surplus food with local community members and shelters.
+                                </p>
+                                <Link to="/register" className="btn-sidebar-join">
+                                    <span>Get Started Free</span>
+                                    <ArrowRight size={13} />
+                                </Link>
+                            </div>
+                        ) : (
+                            <div className="sidebar-user-card">
+                                <div className="sidebar-user-avatar">
+                                    {session.user?.name ? session.user.name.charAt(0).toUpperCase() : 'U'}
+                                </div>
+                                <div className="sidebar-user-meta">
+                                    <span className="sidebar-user-name">{session.user?.name}</span>
+                                    <span className="sidebar-user-role">{session.user?.role ? session.user.role.charAt(0).toUpperCase() + session.user.role.slice(1) : 'Member'}</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="sidebar-user-logout"
+                                    onClick={signOut}
+                                    title="Sign out"
+                                    aria-label="Sign out"
+                                >
+                                    <LogOut size={14} />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </aside>
 
                 <main className="dashboard-main">
-                    <Outlet />
+                    <Outlet context={{ feedListings, feedLoading, feedError, reloadFeed }} />
                 </main>
             </div>
 

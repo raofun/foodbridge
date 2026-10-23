@@ -2,9 +2,6 @@ import { useState, useCallback, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  UtensilsCrossed, 
-  Users, 
-  HeartHandshake, 
   User, 
   Mail, 
   Lock, 
@@ -19,27 +16,6 @@ import AuthDivider from '../components/AuthDivider.jsx';
 import GoogleSignInButton from '../components/GoogleSignInButton.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { apiRequest } from '../services/api.js';
-
-const ROLES = [
-  {
-    id: 'donor',
-    label: 'Donor',
-    hint: 'Share surplus food from restaurants, kitchens, or groceries',
-    icon: UtensilsCrossed,
-  },
-  {
-    id: 'receiver',
-    label: 'Receiver',
-    hint: 'Request surplus meals for community shelters & families',
-    icon: Users,
-  },
-  {
-    id: 'volunteer',
-    label: 'Volunteer',
-    hint: 'Help transport and coordinate neighborhood pickups',
-    icon: HeartHandshake,
-  },
-];
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -76,12 +52,16 @@ export default function RegisterPage() {
         body: JSON.stringify({ credential, role: 'member' }),
       });
       signIn(result);
-      navigate(returnTo, { replace: true });
+      if (typeof returnTo === 'object') {
+        navigate(returnTo, { replace: true });
+      } else {
+        navigate(returnTo, { replace: true, state: location.state?.listing ? { listing: location.state.listing } : undefined });
+      }
     } catch (requestError) {
       setError(requestError.message);
       setBusy(false);
     }
-  }, [navigate, signIn, returnTo]);
+  }, [navigate, signIn, returnTo, location.state]);
 
   // Submit registration form
   async function submit(event) {
@@ -110,7 +90,11 @@ export default function RegisterPage() {
         }),
       });
       signIn(result);
-      navigate(returnTo, { replace: true });
+      if (typeof returnTo === 'object') {
+        navigate(returnTo, { replace: true });
+      } else {
+        navigate(returnTo, { replace: true, state: location.state?.listing ? { listing: location.state.listing } : undefined });
+      }
     } catch (requestError) {
       setError(requestError.message);
       setBusy(false);
