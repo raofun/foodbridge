@@ -1,8 +1,14 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+let rawBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+rawBase = rawBase.replace(/\/+$/, '');
+if (!rawBase.endsWith('/api')) {
+  rawBase += '/api';
+}
+const API_BASE = rawBase;
 
 export async function apiRequest(path, { token, ...options } = {}) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 4000);
+  // 25-second timeout to accommodate free-tier cold-starts and bcrypt hashing
+  const timeoutId = setTimeout(() => controller.abort(), 25000);
 
   try {
     const response = await fetch(`${API_BASE}${path}`, {
