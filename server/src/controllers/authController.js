@@ -3,29 +3,31 @@ import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
 
-const allowedRoles = ['donor', 'receiver', 'volunteer'];
+const allowedRoles = ['member', 'donor', 'receiver', 'volunteer', 'community'];
 
 function createSession(user) {
   const token = jwt.sign({ sub: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
   return {
     token,
-    user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    user: { id: user.id, name: user.name, email: user.email, role: user.role || 'member' },
   };
 }
 
 export async function register(req, res, next) {
   try {
     const { name, email, password, role } = req.body;
-    if (!name?.trim() || !email?.trim() || !password || !role) {
-      return res.status(400).json({ message: 'Name, email, password, and role are required.' });
+    if (!name?.trim() || !email?.trim() || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required.' });
     }
-    if (!allowedRoles.includes(role)) return res.status(400).json({ message: 'Choose a valid account role.' });
+    const assignedRole = role && allowedRoles.includes(role) ? role : 'member';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return res.status(400).json({ message: 'Enter a valid email address.' });
     if (password.length < 8) return res.status(400).json({ message: 'Password must be at least 8 characters.' });
     const normalizedEmail = email.trim().toLowerCase();
     if (await User.exists({ email: normalizedEmail })) return res.status(409).json({ message: 'An account with this email already exists.' });
     const user = await User.create({
-      name: name.trim(), email: normalizedEmail, role,
+      name: name.trim(),
+      email: normalizedEmail,
+      role: assignedRole,
       passwordHash: await bcrypt.hash(password, 12),
     });
     res.status(201).json(createSession(user));
@@ -57,22 +59,13 @@ export async function googleLogin(req, res, next) {
 
     let user = await User.findOne({ email: profile.email.toLowerCase() });
     if (!user) {
-      // If role was not specified, prompt the user to pick their role
-      if (!role || !allowedRoles.includes(role)) {
-        return res.json({
-          isNewUser: true,
-          name: profile.name?.trim() || profile.email.split('@')[0],
-          email: profile.email.toLowerCase(),
-          credential,
-        });
-      }
-
-      // Role is present: create the new account
+      // Create new community member account directly
+      const assignedRole = role && allowedRoles.includes(role) ? role : 'member';
       user = await User.create({
         name: profile.name?.trim() || profile.email.split('@')[0],
         email: profile.email.toLowerCase(),
         googleId: profile.sub,
-        role,
+        role: assignedRole,
       });
     } else if (!user.googleId) {
       // Existing user: link their Google ID

@@ -12,7 +12,6 @@ function validateListingBasics(body) {
 
 export async function createListing(req, res, next) {
   try {
-    if (req.user.role !== 'donor') return res.status(403).json({ message: 'Only donor accounts can create food listings.' });
     const error = validateListingBasics(req.body);
     if (error) return res.status(400).json({ message: error });
     const listing = await Listing.create({

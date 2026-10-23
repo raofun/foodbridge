@@ -1,13 +1,13 @@
 import { lazy, Suspense } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
 import AuthFrame from './components/AuthFrame.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
+import HomeLayout from './components/HomeLayout.jsx';
+import HomePage from './pages/HomePage.jsx';
 
-// Code-split dashboard routes on demand for smaller initial load
-const DashboardLayout = lazy(() => import('./components/DashboardLayout.jsx'));
-const DashboardPage = lazy(() => import('./pages/DashboardPage.jsx'));
+// Code-split listing routes on demand for optimal loading performance
 const FoodListingPage = lazy(() => import('./pages/FoodListingPage.jsx'));
 const FoodInformationPage = lazy(() => import('./pages/FoodInformationPage.jsx'));
 const PickupSchedulePage = lazy(() => import('./pages/PickupSchedulePage.jsx'));
@@ -21,37 +21,77 @@ function LoadingFallback() {
   );
 }
 
-function ProtectedRoute() {
+function ProtectedRoute({ children }) {
   const { session, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <LoadingFallback />;
-  return session ? (
-    <Suspense fallback={<LoadingFallback />}>
-      <DashboardLayout />
-    </Suspense>
-  ) : (
-    <Navigate to="/login" replace />
-  );
+  return session ? children : <Navigate to="/login" state={{ from: location }} replace />;
 }
 
 function AuthRoute({ children }) {
   const { session, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <LoadingFallback />;
-  return session ? <Navigate to="/dashboard" replace /> : children;
+  return session ? <Navigate to={location.state?.from || '/'} replace /> : children;
 }
 
 export default function App() {
   return (
     <Routes>
-      <Route
-        path="/"
-        element={
-          <AuthRoute>
-            <AuthFrame>
-              <LoginPage />
-            </AuthFrame>
-          </AuthRoute>
-        }
-      />
+      {/* Homepage is the first page when entering the website */}
+      <Route path="/" element={<HomeLayout />}>
+        <Route index element={<HomePage />} />
+
+        {/* Food Listing Workflows */}
+        <Route
+          path="listings/new"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <FoodListingPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="create-listing"
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <FoodListingPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="listings/:listingId/information"
+          element={
+            <ProtectedRoute>
+              <Suspense fallback={<LoadingFallback />}>
+                <FoodInformationPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="listings/:listingId/pickup"
+          element={
+            <ProtectedRoute>
+              <Suspense fallback={<LoadingFallback />}>
+                <PickupSchedulePage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="listings/mine"
+          element={
+            <ProtectedRoute>
+              <Suspense fallback={<LoadingFallback />}>
+                <MyListingsPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+      </Route>
+
+      {/* Authentication Pages */}
       <Route
         path="/login"
         element={
@@ -72,48 +112,10 @@ export default function App() {
           </AuthRoute>
         }
       />
-      <Route path="/dashboard" element={<ProtectedRoute />}>
-        <Route
-          index
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <DashboardPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="listings/new"
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <FoodListingPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="listings/:listingId/information"
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <FoodInformationPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="listings/:listingId/pickup"
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <PickupSchedulePage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="listings/mine"
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <MyListingsPage />
-            </Suspense>
-          }
-        />
-      </Route>
+
+      {/* Legacy and fallback routes redirect to Homepage */}
+      <Route path="/dashboard/*" element={<Navigate to="/" replace />} />
+      <Route path="/dashboard" element={<Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

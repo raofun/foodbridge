@@ -310,6 +310,40 @@
   z-index: 0;
 }
 
+/* All-In-One Community Account Perks Box */
+.community-perks-box {
+  background: rgba(255, 94, 26, 0.08);
+  border: 1px solid rgba(255, 94, 26, 0.22);
+  border-radius: var(--fb-radius-element);
+  padding: 10px 14px;
+  margin-bottom: clamp(10px, 1.6vh, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.community-perks-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--fb-orange-bright);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.perks-spark-icon {
+  color: var(--fb-orange-bright);
+}
+
+.community-perks-text {
+  font-size: 11px;
+  color: var(--fb-text-sub);
+  line-height: 1.45;
+  margin: 0;
+}
+
 /* Compact Segmented Role Bar */
 .role-segmented-box {
   margin-bottom: clamp(8px, 1.4vh, 13px);

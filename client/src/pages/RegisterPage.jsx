@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   UtensilsCrossed, 
@@ -43,9 +43,10 @@ const ROLES = [
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn } = useAuth();
+  const returnTo = location.state?.from || '/';
 
-  const [role, setRole] = useState('donor');
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -56,11 +57,6 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-
-  // Active role details
-  const currentRoleInfo = useMemo(() => {
-    return ROLES.find(r => r.id === role) || ROLES[0];
-  }, [role]);
 
   // Real-time password validations
   const passwordStats = useMemo(() => {
@@ -77,15 +73,15 @@ export default function RegisterPage() {
     try {
       const result = await apiRequest('/auth/google', {
         method: 'POST',
-        body: JSON.stringify({ credential, role }),
+        body: JSON.stringify({ credential, role: 'member' }),
       });
       signIn(result);
-      navigate('/dashboard');
+      navigate(returnTo, { replace: true });
     } catch (requestError) {
       setError(requestError.message);
       setBusy(false);
     }
-  }, [navigate, role, signIn]);
+  }, [navigate, signIn, returnTo]);
 
   // Submit registration form
   async function submit(event) {
@@ -110,11 +106,11 @@ export default function RegisterPage() {
           name: form.name.trim(),
           email: form.email.trim(),
           password: form.password,
-          role,
+          role: 'member',
         }),
       });
       signIn(result);
-      navigate('/dashboard');
+      navigate(returnTo, { replace: true });
     } catch (requestError) {
       setError(requestError.message);
       setBusy(false);
@@ -138,7 +134,7 @@ export default function RegisterPage() {
 
       {/* Nav Switcher with sliding animated pill */}
       <nav className="auth-nav-pill-group" aria-label="Account navigation">
-        <Link to="/login" className="auth-nav-pill-btn">
+        <Link to="/login" state={location.state} className="auth-nav-pill-btn">
           <span style={{ position: 'relative', zIndex: 1 }}>Sign in</span>
         </Link>
         <span className="auth-nav-pill-btn active">
@@ -151,42 +147,15 @@ export default function RegisterPage() {
         </span>
       </nav>
 
-      {/* Segmented Role Selector */}
-      <div className="role-segmented-box">
-        <div className="role-bar-header">
-          <span>Your Participation Role</span>
-          <span className="role-selected-badge">✦ {currentRoleInfo.label}</span>
+      {/* All-In-One Community Account Perks Badge */}
+      <div className="community-perks-box">
+        <div className="community-perks-header">
+          <Sparkles size={13} className="perks-spark-icon" />
+          <span>One Community Account</span>
         </div>
-        <div className="role-bar-segmented" role="radiogroup">
-          {ROLES.map((item) => {
-            const Icon = item.icon;
-            const isSelected = role === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className={`role-bar-btn ${isSelected ? 'selected' : ''}`}
-                onClick={() => setRole(item.id)}
-                role="radio"
-                aria-checked={isSelected}
-              >
-                {isSelected && (
-                  <motion.div 
-                    layoutId="roleSegmentIndicator" 
-                    className="role-bar-indicator" 
-                    transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-                  />
-                )}
-                <Icon size={14} style={{ position: 'relative', zIndex: 1 }} />
-                <span style={{ position: 'relative', zIndex: 1 }}>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-        <div className="role-dynamic-hint">
-          <Sparkles size={11} />
-          <span>{currentRoleInfo.hint}</span>
-        </div>
+        <p className="community-perks-text">
+          Donate surplus food, claim meals from neighbors, and volunteer for local pickups anytime.
+        </p>
       </div>
 
       {/* Responsive Form Grid */}

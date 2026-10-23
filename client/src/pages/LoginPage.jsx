@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Mail, 
@@ -43,17 +43,14 @@ const ROLES = [
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn } = useAuth();
+  const returnTo = location.state?.from || '/';
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-
-  // Role selection modal state for first-time Google sign-in
-  const [pendingGoogleUser, setPendingGoogleUser] = useState(null);
-  const [selectedRole, setSelectedRole] = useState('donor');
-  const [submittingRole, setSubmittingRole] = useState(false);
 
   // Handle Google Sign-In response
   const finishGoogleSignIn = useCallback(async (credential) => {
@@ -64,43 +61,13 @@ export default function LoginPage() {
         method: 'POST',
         body: JSON.stringify({ credential }),
       });
-      
-      // If brand new Google user, prompt them with the quick role picker modal
-      if (result.isNewUser) {
-        setPendingGoogleUser(result);
-        setBusy(false);
-        return;
-      }
-
-      // Existing user: proceed immediately
       signIn(result);
-      navigate('/dashboard');
+      navigate(returnTo, { replace: true });
     } catch (requestError) {
       setError(requestError.message);
       setBusy(false);
     }
-  }, [navigate, signIn]);
-
-  // Complete registration for new Google user with selected role
-  const completeGoogleSignUp = async () => {
-    if (!pendingGoogleUser) return;
-    setSubmittingRole(true);
-    setError('');
-    try {
-      const result = await apiRequest('/auth/google', {
-        method: 'POST',
-        body: JSON.stringify({
-          credential: pendingGoogleUser.credential,
-          role: selectedRole,
-        }),
-      });
-      signIn(result);
-      navigate('/dashboard');
-    } catch (requestError) {
-      setError(requestError.message);
-      setSubmittingRole(false);
-    }
-  };
+  }, [navigate, signIn, returnTo]);
 
   // Handle email/password sign-in submission
   async function submit(event) {
@@ -117,7 +84,7 @@ export default function LoginPage() {
         }),
       });
       signIn(result);
-      navigate('/dashboard');
+      navigate(returnTo, { replace: true });
     } catch (requestError) {
       setError(requestError.message);
       setBusy(false);
@@ -149,7 +116,7 @@ export default function LoginPage() {
           />
           <span style={{ position: 'relative', zIndex: 1 }}>Sign in</span>
         </span>
-        <Link to="/register" className="auth-nav-pill-btn">
+        <Link to="/register" state={location.state} className="auth-nav-pill-btn">
           <span style={{ position: 'relative', zIndex: 1 }}>Create account</span>
         </Link>
       </nav>
@@ -243,91 +210,6 @@ export default function LoginPage() {
       <div className="auth-google-wrapper">
         <GoogleSignInButton onCredential={finishGoogleSignIn} text="signin_with" />
       </div>
-
-      {/* Role Picker Modal for New Google Sign-In Users */}
-      <AnimatePresence>
-        {pendingGoogleUser && (
-          <motion.div
-            className="auth-modal-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="auth-modal-card"
-              initial={{ scale: 0.94, opacity: 0, y: 14 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.94, opacity: 0, y: 14 }}
-              transition={{ duration: 0.25, ease: 'easeOut' }}
-            >
-              <div className="auth-modal-header">
-                <span className="auth-modal-chip">
-                  <Sparkles size={11} /> One Quick Step
-                </span>
-                <h3 className="auth-modal-title">
-                  Welcome, {pendingGoogleUser.name.split(' ')[0]}!
-                </h3>
-                <p className="auth-modal-subtitle">
-                  Choose how you will be participating in FoodBridge:
-                </p>
-              </div>
-
-              <div className="auth-modal-roles-grid" role="radiogroup" aria-label="Select account role">
-                {ROLES.map(({ id, label, hint, icon: Icon }) => (
-                  <button
-                    key={id}
-                    type="button"
-                    role="radio"
-                    aria-checked={selectedRole === id}
-                    className={`auth-modal-role-item ${selectedRole === id ? 'selected' : ''}`}
-                    onClick={() => setSelectedRole(id)}
-                  >
-                    <div className="auth-modal-role-icon">
-                      <Icon size={18} />
-                    </div>
-                    <div className="auth-modal-role-info">
-                      <div className="auth-modal-role-name">{label}</div>
-                      <div className="auth-modal-role-desc">{hint}</div>
-                    </div>
-                    <div className="auth-modal-check">
-                      {selectedRole === id && <Check size={11} strokeWidth={3} />}
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              <div className="auth-modal-actions">
-                <button
-                  type="button"
-                  className="auth-modal-cancel-btn"
-                  onClick={() => setPendingGoogleUser(null)}
-                  disabled={submittingRole}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="auth-modal-confirm-btn"
-                  onClick={completeGoogleSignUp}
-                  disabled={submittingRole}
-                >
-                  {submittingRole ? (
-                    <>
-                      <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
-                      <span>Setting up...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Complete Setup</span>
-                      <ArrowRight size={14} />
-                    </>
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }

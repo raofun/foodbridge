@@ -24,8 +24,8 @@ export default function PickupSchedulePage() {
   useEffect(() => {
     apiRequest(`/listings/${listingId}`, { token: session.token })
       .then(({ listing }) => {
-        if (listing.status !== 'draft') { navigate('/dashboard/listings/mine', { replace: true }); return; }
-        if (!listing.preparedAt || !listing.storageDetails || !listing.foodCondition) { navigate(`/dashboard/listings/${listingId}/information`, { replace: true }); return; }
+        if (listing.status !== 'draft') { navigate('/listings/mine', { replace: true }); return; }
+        if (!listing.preparedAt || !listing.storageDetails || !listing.foodCondition) { navigate(`/listings/${listingId}/information`, { replace: true }); return; }
         setForm({ pickupLocation: listing.pickupLocation || '', pickupOpensAt: toLocalDateTime(listing.pickupOpensAt), pickupClosesAt: toLocalDateTime(listing.pickupClosesAt) });
         setListingLoaded(true);
       })
@@ -41,15 +41,15 @@ export default function PickupSchedulePage() {
         method: 'PATCH',
         body: JSON.stringify({ ...form, pickupOpensAt: new Date(form.pickupOpensAt).toISOString(), pickupClosesAt: new Date(form.pickupClosesAt).toISOString() }),
       });
-      navigate('/dashboard/listings/mine', { state: { notice: 'Your listing is complete and available.' } });
+      navigate('/listings/mine', { state: { notice: 'Your listing is complete and available.' } });
     } catch (e) { setError(e.message); }
     finally { setBusy(false); }
   }
 
   return <>
-    <div className="page-title"><div><span className="eyebrow">COLLECTION WINDOW</span><h1>Schedule <em>pickup.</em></h1><p>Choose where and when receivers can collect the food.</p></div><Link className="text-button" to={`/dashboard/listings/${listingId}/information`}>← Back</Link></div>
+    <div className="page-title"><div><span className="eyebrow">COLLECTION WINDOW</span><h1>Schedule <em>pickup.</em></h1><p>Choose where and when receivers can collect the food.</p></div><Link className="text-button" to={`/listings/${listingId}/information`}>← Back</Link></div>
     <ListingSteps current="03" />
-    {loading ? <div className="empty-state">Loading listing…</div> : !listingLoaded ? <div className="notice error" role="alert">{error} <Link to="/dashboard/listings/mine">Return to my listings</Link></div> : <section className="panel form-panel">
+    {loading ? <div className="empty-state">Loading listing…</div> : !listingLoaded ? <div className="notice error" role="alert">{error} <Link to="/listings/mine">Return to my listings</Link></div> : <section className="panel form-panel">
       <div className="panel-heading"><div><span className="eyebrow">FEATURE 05</span><h2>Pickup schedule</h2><p>The listing becomes available once its collection window is saved.</p></div></div>
       <form className="listing-form" onSubmit={submit}>
         <div className="field-grid">
