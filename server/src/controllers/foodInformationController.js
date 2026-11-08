@@ -3,11 +3,7 @@ import Listing from '../models/Listing.js';
 const conditions = ['fresh', 'refrigerated', 'frozen', 'shelf-stable'];
 const categories = ['meals', 'bakery', 'produce', 'fruits', 'dairy', 'packaged', 'beverages', 'other'];
 
-/**
- * Fetch food information for a listing.
- * - If draft: only accessible by the owner donor.
- * - If available/closed: accessible to community members/receivers as a verified food passport.
- */
+
 export async function getFoodInformation(req, res, next) {
   try {
     const listing = await Listing.findById(req.params.id)
@@ -22,7 +18,7 @@ export async function getFoodInformation(req, res, next) {
     const userId = req.user?.id ? String(req.user.id) : null;
     const isOwner = Boolean(userId && donorId === userId);
 
-    // If draft, access is restricted to the owning donor
+
     if (listing.status === 'draft' && !isOwner) {
       return res.status(403).json({ message: 'Access denied. Only the listing creator can access draft food information.' });
     }
@@ -45,9 +41,7 @@ export async function getFoodInformation(req, res, next) {
   }
 }
 
-/**
- * Save food safety & preparation details (Step 02 of listing flow).
- */
+
 export async function saveFoodInformation(req, res, next) {
   try {
     const listing = await Listing.findOne({ _id: req.params.id, donor: req.user.id });
@@ -65,7 +59,7 @@ export async function saveFoodInformation(req, res, next) {
     if (useByAt && new Date(useByAt) <= new Date(preparedAt)) return res.status(400).json({ message: 'Use-by time must be after preparation time.' });
     if (safetyNotes && safetyNotes.length > 1000) return res.status(400).json({ message: 'Safety notes must be 1000 characters or fewer.' });
 
-    // Optionally update core food fields if provided in this step
+    
     if (req.body.foodName?.trim()) listing.foodName = req.body.foodName.trim();
     if (req.body.category && categories.includes(req.body.category)) listing.category = req.body.category;
     if (req.body.description?.trim()) listing.description = req.body.description.trim();

@@ -749,13 +749,10 @@
     border-color: var(--fb-orange-vivid);
 }
 
-/* ==========================================================================
-   Responsive Breakpoints
-   ========================================================================== */
 
-/* Tablets & Small Laptops (<= 920px) */
+
 @media (max-width: 920px) {
-    /* Let the fixed drawer stack above its backdrop instead of being dimmed by it. */
+   
     .dashboard .dashboard-wrap {
         display: block;
         width: 100%;
@@ -772,7 +769,6 @@
         padding: 0 clamp(14px, 3vw, 24px);
     }
 
-    /* Hide center breadcrumb to prevent crowding on tablets/mobile */
     .topbar-center {
         display: none;
     }
@@ -798,7 +794,6 @@
         filter: none;
     }
 
-    /* Off-canvas mobile drawer with native feel */
     .dashboard .sidebar {
         display: flex;
         position: fixed;
@@ -829,7 +824,7 @@
         box-shadow: 20px 0 50px rgba(0, 0, 0, 0.9);
     }
 
-    /* Mobile drawer top header with close button */
+
     .sidebar-mobile-header {
         display: flex;
         align-items: center;

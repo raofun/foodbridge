@@ -7,7 +7,6 @@ const API_BASE = rawBase;
 
 export async function apiRequest(path, { token, ...options } = {}) {
   const controller = new AbortController();
-  // 25-second timeout to accommodate free-tier cold-starts and bcrypt hashing
   const timeoutId = setTimeout(() => controller.abort(), 25000);
 
   try {

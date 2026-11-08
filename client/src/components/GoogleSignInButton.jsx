@@ -48,7 +48,7 @@ export default function GoogleSignInButton({ onCredential, text = 'signin_with' 
       } catch (err) {
         console.warn('Google Sign-In button render error:', err);
         if (!isCancelled) setFailed(true);
-        return true; // Stop polling on hard error
+        return true; 
       }
     };
 
@@ -108,7 +108,6 @@ export default function GoogleSignInButton({ onCredential, text = 'signin_with' 
         width: '100%',
       }}
     >
-      {/* Empty container specifically for Google to inject its iframe */}
       <div ref={containerRef} style={{ display: rendered ? 'flex' : 'none', justifyContent: 'center' }} />
       {!rendered && (
         <button type="button" className="button button-google full" disabled style={{ opacity: 0.6 }}>

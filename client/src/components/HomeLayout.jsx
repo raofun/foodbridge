@@ -23,7 +23,7 @@ export default function HomeLayout() {
     const [feedLoading, setFeedLoading] = useState(true);
     const [feedError, setFeedError] = useState('');
 
-    // Keep one feed request for the layout and homepage in sync.
+    
     const reloadFeed = useCallback(async (signal) => {
         setFeedLoading(true);
         setFeedError('');
@@ -40,19 +40,19 @@ export default function HomeLayout() {
         }
     }, []);
 
-    // Refresh the feed on route changes, matching the existing refresh behavior.
+    
     useEffect(() => {
         const controller = new AbortController();
         reloadFeed(controller.signal);
         return () => controller.abort();
     }, [location.pathname, reloadFeed]);
 
-    // Close mobile drawer when route changes
+    
     useEffect(() => {
         setMobileMenuOpen(false);
     }, [location.pathname]);
 
-    // Prevent body scroll when mobile drawer is open
+    
     useEffect(() => {
         if (mobileMenuOpen) {
             document.body.style.overflow = 'hidden';
@@ -64,7 +64,7 @@ export default function HomeLayout() {
         };
     }, [mobileMenuOpen]);
 
-    // Current section title for topbar route indicator
+    
     const getPageTitle = () => {
         if (location.pathname === '/') return 'Community Feed';
         if (location.pathname.startsWith('/listings/new') || location.pathname.startsWith('/create-listing')) return 'Create Listing';
@@ -76,7 +76,7 @@ export default function HomeLayout() {
 
     return (
         <div className="dashboard">
-            {/* Topbar Glass Navigation */}
+            
             <header className="topbar">
                 <div className="topbar-left">
                     <button
@@ -90,7 +90,7 @@ export default function HomeLayout() {
                         {mobileMenuOpen ? <X size={20} strokeWidth={2.5} /> : <Menu size={20} strokeWidth={2.5} />}
                     </button>
 
-                    {/* Brand */}
+                    
                     <NavLink to="/" className="auth-brand-badge">
                         <div className="auth-brand-icon">
                             <UtensilsCrossed size={18} strokeWidth={2.4} />
@@ -100,7 +100,7 @@ export default function HomeLayout() {
                     </NavLink>
                 </div>
 
-                {/* Center Route Indicator (Desktop) */}
+             
                 <div className="topbar-center">
                     <div className="breadcrumb-chip">
                         <span className="breadcrumb-dot" />
@@ -108,7 +108,7 @@ export default function HomeLayout() {
                     </div>
                 </div>
 
-                {/* User Identity / Auth Actions */}
+                
                 <div className="topbar-right">
                     {session ? (
                         <>
@@ -140,10 +140,10 @@ export default function HomeLayout() {
                 </div>
             </header>
 
-            {/* Main Layout Flex Container */}
+            
             <div className="dashboard-wrap">
                 <aside id="mobile-navigation" className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
-                    {/* Mobile Drawer Header */}
+                    
                     <div className="sidebar-mobile-header">
                         <div className="sidebar-mobile-brand">
                             <div className="auth-brand-icon" style={{ width: '30px', height: '30px' }}>
@@ -161,7 +161,7 @@ export default function HomeLayout() {
                         </button>
                     </div>
 
-                    {/* Navigation Links */}
+                    
                     <div className="sidebar-nav-section">
                         <span className="sidebar-section-title">EXPLORE</span>
 
@@ -176,7 +176,7 @@ export default function HomeLayout() {
                             </span>
                         </NavLink>
 
-                        {session && (
+                        {session && session.user?.role !== 'receiver' && (
                             <NavLink
                                 to="/listings/new"
                                 className={({ isActive }) =>
@@ -193,7 +193,7 @@ export default function HomeLayout() {
                     </div>
 
                     <div className="sidebar-bottom-group">
-                        {/* Community Pulse stays with the account actions at the sidebar bottom. */}
+                        
                         <div className="sidebar-pulse-card">
                             <div className="pulse-header">
                                 <HeartHandshake size={14} className="pulse-icon" />
@@ -211,7 +211,7 @@ export default function HomeLayout() {
                             </div>
                         </div>
 
-                        {/* Keep the signed-in profile anchored at the very bottom. */}
+                        
                         {!session ? (
                             <div className="sidebar-cta-card">
                                 <div className="cta-icon-pill">
@@ -255,7 +255,7 @@ export default function HomeLayout() {
                 </main>
             </div>
 
-            {/* Mobile Drawer Backdrop */}
+            
             {mobileMenuOpen && (
                 <div
                     className="mobile-sidebar-backdrop"

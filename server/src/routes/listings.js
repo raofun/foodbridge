@@ -7,13 +7,13 @@ import pickupSchedules from './pickupSchedules.js';
 
 const router = Router();
 
-// Public route for community feed on homepage (no authentication required)
+// Public routes (no authentication required, or optional auth for published listings)
 router.get('/feed', getPublicFeed);
+router.use('/', foodInformation);
 
 // Protected routes (require valid JWT bearer token)
 router.use(requireAuth);
 router.use('/', foodListings);
-router.use('/', foodInformation);
 router.use('/', pickupSchedules);
 
 export default router;

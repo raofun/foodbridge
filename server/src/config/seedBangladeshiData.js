@@ -147,13 +147,21 @@ export const BANGLADESHI_DEMO_LISTINGS = [
   },
 ];
 
-export async function seedBangladeshiListings() {
+export async function seedBangladeshiListings({ force = false } = {}) {
   try {
+    const demoNames = BANGLADESHI_DEMO_LISTINGS.map(item => item.foodName);
+    const nonDemoCount = await Listing.countDocuments({ foodName: { $nin: demoNames } });
+
+    if (nonDemoCount > 0 && !force) {
+      console.log(`Live database has ${nonDemoCount} user listing(s). Auto-seeding skipped to protect live data.`);
+      console.log('To force seed demo listings alongside user data, run: npm run seed -- --force');
+      return;
+    }
+
     const now = new Date();
 
-    // Remove previous batch to allow updated timestamps (flexible, tomorrow, expired) to apply cleanly
-    const existingNames = BANGLADESHI_DEMO_LISTINGS.map(item => item.foodName);
-    await Listing.deleteMany({ foodName: { $in: existingNames } });
+    // Remove previous demo batch to allow updated timestamps to apply cleanly
+    await Listing.deleteMany({ foodName: { $in: demoNames } });
 
     for (const item of BANGLADESHI_DEMO_LISTINGS) {
       let donor = await User.findOne({ email: item.donorEmail });
@@ -161,7 +169,7 @@ export async function seedBangladeshiListings() {
         donor = await User.create({
           name: item.donorName,
           email: item.donorEmail,
-          role: 'member',
+          role: 'donor',
         });
       }
 
@@ -215,8 +223,22 @@ export async function seedBangladeshiListings() {
       });
     }
 
-    console.log(`Successfully seeded ${BANGLADESHI_DEMO_LISTINGS.length} Bangladeshi listings with varied timestamps (flexible, ranges, upcoming, and expired).`);
+    console.log(`Successfully seeded ${BANGLADESHI_DEMO_LISTINGS.length} Bangladeshi demo listings.`);
   } catch (error) {
     console.error('Failed to seed Bangladeshi demo listings:', error.message);
+  }
+}
+
+export async function cleanBangladeshiListings() {
+  try {
+    const demoNames = BANGLADESHI_DEMO_LISTINGS.map(item => item.foodName);
+    const demoEmails = BANGLADESHI_DEMO_LISTINGS.map(item => item.donorEmail);
+
+    const deletedListings = await Listing.deleteMany({ foodName: { $in: demoNames } });
+    const deletedDonors = await User.deleteMany({ email: { $in: demoEmails } });
+
+    console.log(`Cleaned demo data: Removed ${deletedListings.deletedCount} demo listings and ${deletedDonors.deletedCount} demo donor accounts.`);
+  } catch (error) {
+    console.error('Failed to clean demo listings:', error.message);
   }
 }

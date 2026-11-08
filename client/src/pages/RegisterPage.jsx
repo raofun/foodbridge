@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, 
@@ -10,17 +10,44 @@ import {
   ArrowRight,
   AlertCircle,
   Loader2,
-  Sparkles
+  Sparkles,
+  UtensilsCrossed,
+  Users,
+  HeartHandshake
 } from 'lucide-react';
 import AuthDivider from '../components/AuthDivider.jsx';
 import GoogleSignInButton from '../components/GoogleSignInButton.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { apiRequest } from '../services/api.js';
 
+const ROLES = [
+  {
+    id: 'donor',
+    label: 'Donor',
+    hint: 'Share surplus food from restaurants, kitchens, or groceries',
+    icon: UtensilsCrossed,
+  },
+  {
+    id: 'receiver',
+    label: 'Receiver',
+    hint: 'Request surplus meals for community shelters & families',
+    icon: Users,
+  },
+  {
+    id: 'volunteer',
+    label: 'Volunteer',
+    hint: 'Help transport and coordinate neighborhood pickups',
+    icon: HeartHandshake,
+  },
+];
+
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn } = useAuth();
+  const returnTo = location.state?.from || '/';
 
+  const [role, setRole] = useState('donor');
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -32,7 +59,10 @@ export default function RegisterPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  // Real-time password validations
+  const currentRoleInfo = useMemo(() => {
+    return ROLES.find((r) => r.id === role) || ROLES[0];
+  }, [role]);
+
   const passwordStats = useMemo(() => {
     const hasLength = form.password.length >= 8;
     const hasAlphaNum = /[a-zA-Z]/.test(form.password) && /[0-9]/.test(form.password);
@@ -40,24 +70,22 @@ export default function RegisterPage() {
     return { hasLength, hasAlphaNum, matches };
   }, [form.password, form.confirmPassword]);
 
-  // Google sign in callback
   const finishGoogleSignIn = useCallback(async (credential) => {
     setBusy(true);
     setError('');
     try {
       const result = await apiRequest('/auth/google', {
         method: 'POST',
-        body: JSON.stringify({ credential, role: 'member' }),
+        body: JSON.stringify({ credential, role }),
       });
       signIn(result);
-      navigate('/', { replace: true });
+      navigate(returnTo, { replace: true });
     } catch (requestError) {
       setError(requestError.message);
       setBusy(false);
     }
-  }, [navigate, signIn]);
+  }, [navigate, role, signIn, returnTo]);
 
-  // Submit registration form
   async function submit(event) {
     event.preventDefault();
 
@@ -80,11 +108,11 @@ export default function RegisterPage() {
           name: form.name.trim(),
           email: form.email.trim(),
           password: form.password,
-          role: 'member',
+          role,
         }),
       });
       signIn(result);
-      navigate('/', { replace: true });
+      navigate(returnTo, { replace: true });
     } catch (requestError) {
       setError(requestError.message);
       setBusy(false);
@@ -98,7 +126,6 @@ export default function RegisterPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, ease: 'easeOut' }}
     >
-      {/* Title Row */}
       <div className="auth-title-row">
         <div>
           <h2 className="auth-main-title">Join FoodBridge</h2>
@@ -106,9 +133,8 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      {/* Nav Switcher with sliding animated pill */}
       <nav className="auth-nav-pill-group" aria-label="Account navigation">
-        <Link to="/login" className="auth-nav-pill-btn">
+        <Link to="/login" state={location.state} className="auth-nav-pill-btn">
           <span style={{ position: 'relative', zIndex: 1 }}>Sign in</span>
         </Link>
         <span className="auth-nav-pill-btn active">
@@ -121,18 +147,43 @@ export default function RegisterPage() {
         </span>
       </nav>
 
-      {/* All-In-One Community Account Perks Badge */}
-      <div className="community-perks-box">
-        <div className="community-perks-header">
-          <Sparkles size={13} className="perks-spark-icon" />
-          <span>One Community Account</span>
+      <div className="role-segmented-box">
+        <div className="role-bar-header">
+          <span>Choose Your Role</span>
+          <span className="role-selected-badge">✦ {currentRoleInfo.label}</span>
         </div>
-        <p className="community-perks-text">
-          Donate surplus food, claim meals from neighbors, and volunteer for local pickups anytime.
-        </p>
+        <div className="role-bar-segmented" role="radiogroup" aria-label="Account role selector">
+          {ROLES.map((item) => {
+            const Icon = item.icon;
+            const isSelected = role === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`role-bar-btn ${isSelected ? 'selected' : ''}`}
+                onClick={() => setRole(item.id)}
+                role="radio"
+                aria-checked={isSelected}
+              >
+                {isSelected && (
+                  <motion.div 
+                    layoutId="roleSegmentIndicator" 
+                    className="role-bar-indicator" 
+                    transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                  />
+                )}
+                <Icon size={14} style={{ position: 'relative', zIndex: 1 }} />
+                <span style={{ position: 'relative', zIndex: 1 }}>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="role-dynamic-hint">
+          <Sparkles size={11} />
+          <span>{currentRoleInfo.hint}</span>
+        </div>
       </div>
 
-      {/* Responsive Form Grid */}
       <form className="auth-form-wrap" onSubmit={submit}>
         <div className="form-grid-2col">
           <div className="auth-field-unit">
@@ -232,7 +283,6 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {/* Inline Subtle Password Checklist Dots */}
         {form.password.length > 0 && (
           <div className="password-subtle-indicator">
             <div className="password-dots-row">
@@ -246,7 +296,6 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* Error Alert */}
         <AnimatePresence>
           {error && (
             <motion.div
@@ -262,7 +311,6 @@ export default function RegisterPage() {
           )}
         </AnimatePresence>
 
-        {/* Action Button */}
         <button
           type="submit"
           className="auth-glow-submit-btn"
