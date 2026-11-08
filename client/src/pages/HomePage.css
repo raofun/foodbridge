@@ -10,7 +10,6 @@
     padding-bottom: 40px;
 }
 
-/* --- Hero Banner --- */
 .home-hero-console {
     background: rgba(15, 20, 28, 0.85);
     backdrop-filter: blur(24px);
@@ -29,7 +28,6 @@
     gap: 20px;
 }
 
-/* Ambient Radial Flares inside Hero */
 .home-hero-console::before {
     content: '';
     position: absolute;
@@ -345,7 +343,6 @@
     pointer-events: none;
 }
 
-/* Card Photo Floating Badges */
 .card-condition-pill {
     position: absolute;
     top: 12px;
@@ -428,7 +425,6 @@
     box-shadow: none !important;
 }
 
-/* Card Body */
 .card-content-body {
     padding: 20px;
     display: flex;
@@ -437,7 +433,6 @@
     flex: 1;
 }
 
-/* Food Text Content */
 .card-food-info {
     display: flex;
     flex-direction: column;
@@ -478,7 +473,6 @@
     gap: 5px;
 }
 
-/* Card action */
 .card-buttons-footer {
     display: flex;
     gap: 10px;
@@ -511,9 +505,7 @@
     box-shadow: 0 6px 18px var(--fb-orange-glow);
 }
 
-/* ==========================================================================
-   Modals - Specular Obsidian Glass
-   ========================================================================== */
+/* Modals */
 
 .modal-backdrop-dark {
     position: fixed;
@@ -571,7 +563,6 @@
     border-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Auth Gate Modal Content */
 .modal-gate-container {
     padding: 38px 30px 30px;
     text-align: center;
@@ -598,7 +589,6 @@
     margin: 0;
 }
 
-/* Modal Action Buttons */
 .modal-actions-stack {
     width: 100%;
     display: flex;
@@ -692,7 +682,6 @@
 }
 
 
-/* Ultra-Wide & 4K Displays (>= 1600px) */
 @media (min-width: 1600px) {
     .food-listings-grid {
         grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -700,7 +689,7 @@
     }
 }
 
-/* Medium Laptops & Desktops (<= 1180px) */
+
 @media (max-width: 1180px) {
     .food-listings-grid {
         grid-template-columns: repeat(auto-fill, minmax(295px, 1fr));
@@ -708,7 +697,7 @@
     }
 }
 
-/* Tablets & Small Laptops (<= 860px) */
+
 @media (max-width: 860px) {
     .home-hero-top {
         flex-direction: column;
@@ -732,7 +721,7 @@
     }
 }
 
-/* Mobile Devices (<= 680px) */
+
 @media (max-width: 680px) {
     .home-container {
         gap: 22px;
@@ -764,7 +753,7 @@
 
 }
 
-/* Small Handsets (<= 480px) */
+
 @media (max-width: 680px) {
     .feed-header-row {
         flex-direction: column;
@@ -812,7 +801,7 @@
     }
 }
 
-/* Ultra-Compact Handsets (<= 380px) */
+
 @media (max-width: 380px) {
     .card-buttons-footer {
         flex-direction: column;
@@ -826,7 +815,7 @@
     }
 }
 
-/* Simplified feed cards and compact sign-in gate */
+
 .card-summary-row {
     display: flex;
     align-items: center;

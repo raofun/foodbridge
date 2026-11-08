@@ -24,10 +24,7 @@ const DHAKA_NEIGHBORHOODS = [
 
 /**
  * Parses raw donor and pickup data to cleanly separate organization name and neighborhood.
- * Example:
- *   "Rajshahi Fruit Express Mirpur" -> orgName: "Rajshahi Fruit Express", location: "Mirpur"
- *   "Rajshahi Fruit Express, Mirpur" -> orgName: "Rajshahi Fruit Express", location: "Mirpur"
- */
+   "Rajshahi Fruit Express, Mirpur" -> orgName: "Rajshahi Fruit Express", location: "Mirpur" */
 export function parseDonorDetails(donor, pickupLocation) {
   const rawName = (typeof donor === 'string' ? donor : donor?.name) || 'Community Donor';
   const avatarUrl = donor?.avatarUrl || donor?.photoUrl || donor?.logoUrl;
@@ -36,7 +33,7 @@ export function parseDonorDetails(donor, pickupLocation) {
   let orgName = rawName.trim();
   let location = '';
 
-  // 1. If name contains a comma (e.g. "Rajshahi Fruit Express, Mirpur")
+
   if (orgName.includes(',')) {
     const parts = orgName.split(',').map((s) => s.trim());
     if (parts.length >= 2 && parts[1]) {
@@ -45,7 +42,6 @@ export function parseDonorDetails(donor, pickupLocation) {
     }
   }
 
-  // 2. Extract neighborhood from pickupLocation if available
   if (!location && pickupLocation) {
     const matched = DHAKA_NEIGHBORHOODS.find((n) =>
       pickupLocation.toLowerCase().includes(n.toLowerCase())
@@ -57,7 +53,6 @@ export function parseDonorDetails(donor, pickupLocation) {
     }
   }
 
-  // 3. If orgName ends with a known neighborhood (e.g. "Rajshahi Fruit Express Mirpur")
   for (const n of DHAKA_NEIGHBORHOODS) {
     const regex = new RegExp(`\\s+${n}$`, 'i');
     if (regex.test(orgName)) {
@@ -69,12 +64,11 @@ export function parseDonorDetails(donor, pickupLocation) {
     }
   }
 
-  // 4. Default fallback location if still empty
   if (!location) {
     location = donor?.location || 'Dhaka';
   }
 
-  // Compute initials (e.g. "Rajshahi Fruit Express" -> "RF")
+
   const words = orgName.split(/\s+/).filter(Boolean);
   let initials = 'FB';
   if (words.length >= 2) {

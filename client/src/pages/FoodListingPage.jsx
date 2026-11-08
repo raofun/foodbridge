@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
     ArrowRight,
@@ -43,6 +43,16 @@ const PHOTO_PRESETS = [
 export default function FoodListingPage() {
     const { session } = useAuth();
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (session?.user?.role === 'receiver') {
+            navigate('/', { replace: true });
+        }
+    }, [session, navigate]);
+
+    if (session?.user?.role === 'receiver') {
+        return null;
+    }
 
     const defaultDeadline = () => {
         const d = new Date(Date.now() + 4 * 3600000);
@@ -127,7 +137,6 @@ export default function FoodListingPage() {
             });
 
             if (data?.listing?._id) {
-                // Smooth transition to Step 02: Food Information
                 navigate(`/listings/${data.listing._id}/information`);
             } else {
                 throw new Error('Listing draft could not be verified by the server.');
@@ -143,7 +152,6 @@ export default function FoodListingPage() {
 
     return (
         <div className="create-listing-view">
-            {/* Header with Navigation and Context */}
             <header className="create-listing-header">
                 <div className="create-listing-nav-row">
                     <Link to="/" className="btn-back-link">
@@ -161,21 +169,17 @@ export default function FoodListingPage() {
                 </p>
             </header>
 
-            {/* Step Progress Tracker */}
             <div className="create-listing-steps-wrap">
                 <ListingSteps current="01" />
             </div>
 
-            {/* Main Console Layout */}
             <div className="create-listing-grid">
-                {/* Left: Input Form Card */}
                 <form className="listing-form-card" onSubmit={handleSubmit} noValidate>
                     <div className="form-section-title">
                         <Sparkles size={14} />
                         <span>Food Overview</span>
                     </div>
 
-                    {/* Food Name Field */}
                     <div className="form-group">
                         <div className="form-label-row">
                             <label htmlFor="foodName" className="form-label">
@@ -197,7 +201,6 @@ export default function FoodListingPage() {
                         />
                     </div>
 
-                    {/* Category Selector */}
                     <div className="form-group">
                         <label className="form-label">
                             Food Category <span className="req">*</span>
@@ -223,7 +226,6 @@ export default function FoodListingPage() {
                         </div>
                     </div>
 
-                    {/* Quantity & Portion Unit Row */}
                     <div className="quantity-portion-grid">
                         <div className="form-group">
                             <label htmlFor="quantity" className="form-label">
@@ -273,7 +275,6 @@ export default function FoodListingPage() {
                         </div>
                     </div>
 
-                    {/* Pickup Deadline Required Field */}
                     <div className="form-group">
                         <div className="form-label-row">
                             <label htmlFor="pickupDeadline" className="form-label">
@@ -293,7 +294,6 @@ export default function FoodListingPage() {
                         />
                     </div>
 
-                    {/* Description Field */}
                     <div className="form-group">
                         <div className="form-label-row">
                             <label htmlFor="description" className="form-label">
@@ -314,7 +314,6 @@ export default function FoodListingPage() {
                         />
                     </div>
 
-                    {/* Photo URL & Presets */}
                     <div className="form-group">
                         <div className="form-label-row">
                             <label htmlFor="photoUrl" className="form-label">
@@ -357,7 +356,6 @@ export default function FoodListingPage() {
                         </div>
                     </div>
 
-                    {/* Error Banner */}
                     {errorMessage && (
                         <div className="form-feedback-error" role="alert">
                             <AlertCircle size={16} />
@@ -365,7 +363,6 @@ export default function FoodListingPage() {
                         </div>
                     )}
 
-                    {/* Actions Bar */}
                     <div className="listing-actions-bar">
                         <p className="actions-note">
                             Step 1 creates a safe draft. You will specify preparation times and storage in Step 2.
@@ -386,7 +383,6 @@ export default function FoodListingPage() {
                     </div>
                 </form>
 
-                {/* Right: Live Interactive Card Preview */}
                 <aside className="listing-preview-col" aria-label="Surplus listing live preview">
                     <div className="preview-col-heading">
                         <span className="preview-badge-label">
@@ -453,7 +449,7 @@ export default function FoodListingPage() {
                                     <span>
                                         {new Date(form.pickupDeadline) <= new Date()
                                             ? 'Pickup closed'
-                                            : `Pickup before ${new Date(form.pickupDeadline).getDate()} ${new Date(form.pickupDeadline).toLocaleString('en-US', { month: 'long' })}, ${new Date(form.pickupDeadline).getFullYear()}, ${new Date(form.pickupDeadline).toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`}
+                                             : `Pickup before ${new Date(form.pickupDeadline).getDate()} ${new Date(form.pickupDeadline).toLocaleString('en-US', { month: 'long' })}, ${new Date(form.pickupDeadline).getFullYear()}, ${new Date(form.pickupDeadline).toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`}
                                     </span>
                                 </div>
                             )}

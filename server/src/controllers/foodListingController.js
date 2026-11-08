@@ -17,7 +17,7 @@ function validateListingBasics(body) {
     return null;
 }
 
-// Public: Get all available surplus food listings from database (Community Feed)
+
 
 export async function getPublicFeed(req, res, next) {
     try {
@@ -49,6 +49,8 @@ export async function getPublicFeed(req, res, next) {
                 foodCondition: item.foodCondition,
                 storageDetails: item.storageDetails,
                 safetyNotes: item.safetyNotes,
+                preparedAt: item.preparedAt,
+                useByAt: item.useByAt,
                 pickupLocation: item.pickupLocation,
                 pickupOpensAt: item.pickupOpensAt,
                 pickupClosesAt: item.pickupClosesAt,
@@ -68,9 +70,12 @@ export async function getPublicFeed(req, res, next) {
     }
 }
 
-// Authenticated Donor / Member operations:
+
 export async function createListing(req, res, next) {
     try {
+        if (req.user?.role === 'receiver') {
+            return res.status(403).json({ message: 'Receivers are not permitted to create food listings.' });
+        }
         const error = validateListingBasics(req.body);
         if (error) return res.status(400).json({ message: error });
         const listing = await Listing.create({

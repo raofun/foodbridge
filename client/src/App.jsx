@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
 import AuthFrame from './components/AuthFrame.jsx';
 import LoginPage from './pages/LoginPage.jsx';
@@ -7,7 +7,6 @@ import RegisterPage from './pages/RegisterPage.jsx';
 import HomeLayout from './components/HomeLayout.jsx';
 import HomePage from './pages/HomePage.jsx';
 
-// Code-split listing routes on demand for optimal loading performance
 const FoodListingPage = lazy(() => import('./pages/FoodListingPage.jsx'));
 const FoodInformationPage = lazy(() => import('./pages/FoodInformationPage.jsx'));
 const PickupSchedulePage = lazy(() => import('./pages/PickupSchedulePage.jsx'));
@@ -23,8 +22,18 @@ function LoadingFallback() {
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <LoadingFallback />;
-  return session ? children : <Navigate to="/login" replace />;
+  return session ? children : <Navigate to="/login" state={{ from: location }} replace />;
+}
+
+function DonorRoute({ children }) {
+  const { session, loading } = useAuth();
+  const location = useLocation();
+  if (loading) return <LoadingFallback />;
+  if (!session) return <Navigate to="/login" state={{ from: location }} replace />;
+  if (session.user?.role === 'receiver') return <Navigate to="/" replace />;
+  return children;
 }
 
 function AuthRoute({ children }) {
@@ -36,50 +45,40 @@ function AuthRoute({ children }) {
 export default function App() {
   return (
     <Routes>
-      {/* Homepage is the first page when entering the website */}
       <Route path="/" element={<HomeLayout />}>
         <Route index element={<HomePage />} />
 
-        {/* Food Listing Workflows */}
         <Route
           path="listings/new"
           element={
-            <ProtectedRoute>
+            <DonorRoute>
               <Suspense fallback={<LoadingFallback />}>
                 <FoodListingPage />
               </Suspense>
-            </ProtectedRoute>
+            </DonorRoute>
           }
         />
         <Route
           path="create-listing"
           element={
-            <ProtectedRoute>
+            <DonorRoute>
               <Suspense fallback={<LoadingFallback />}>
                 <FoodListingPage />
               </Suspense>
-            </ProtectedRoute>
+            </DonorRoute>
           }
         />
         <Route
           path="listings/:listingId/information"
           element={
-            <ProtectedRoute>
-              <Suspense fallback={<LoadingFallback />}>
-                <FoodInformationPage />
-              </Suspense>
-            </ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <FoodInformationPage />
+            </Suspense>
           }
         />
         <Route
           path="food-information"
-          element={
-            <ProtectedRoute>
-              <Suspense fallback={<LoadingFallback />}>
-                <FoodInformationPage />
-              </Suspense>
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/listings/new" replace />}
         />
         <Route
           path="listings/:listingId/pickup"
@@ -103,7 +102,6 @@ export default function App() {
         />
       </Route>
 
-      {/* Authentication Pages */}
       <Route
         path="/login"
         element={
@@ -125,7 +123,6 @@ export default function App() {
         }
       />
 
-      {/* Legacy and fallback routes redirect to Homepage */}
       <Route path="/dashboard/*" element={<Navigate to="/" replace />} />
       <Route path="/dashboard" element={<Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -58,8 +58,6 @@ export default function HomePage() {
     const navigate = useNavigate();
     const { feedListings, feedLoading: loading, feedError: error, reloadFeed } = useOutletContext();
     const [activeCategory, setActiveCategory] = useState('all');
-
-    // Live clock reference updating regularly to keep pickup statuses accurate based on current time
     const [currentTime, setCurrentTime] = useState(() => new Date());
 
     useEffect(() => {
@@ -69,11 +67,9 @@ export default function HomePage() {
         return () => clearInterval(timer);
     }, []);
 
-    // Modal State
     const [selectedListing, setSelectedListing] = useState(null);
     const [modalType, setModalType] = useState(null);
 
-    // Live active donations count (excluding expired/closed)
     const activeCount = useMemo(() => {
         return feedListings.filter(item => {
             const deadline = item.pickupDeadline || item.pickupClosesAt;
@@ -82,7 +78,6 @@ export default function HomePage() {
         }).length;
     }, [feedListings, currentTime]);
 
-    // Filter listings based on active category pill and sort expired/closed to the bottom
     const filteredListings = useMemo(() => {
         const isItemExpired = (item) => {
             const deadline = item.pickupDeadline || item.pickupClosesAt;
@@ -94,7 +89,6 @@ export default function HomePage() {
             return activeCategory === 'all' || item.category === activeCategory;
         });
 
-        // Active listings first, expired listings automatically pushed to the bottom of the menu
         return [...matching].sort((a, b) => {
             const aExpired = isItemExpired(a);
             const bExpired = isItemExpired(b);
@@ -126,13 +120,11 @@ export default function HomePage() {
         navigate(pathname, { state: { listing } });
     };
 
-    // Close Modal handler
     const closeModal = () => {
         setModalType(null);
         setSelectedListing(null);
     };
 
-    // Close modal on Escape key press
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === 'Escape') closeModal();
@@ -152,7 +144,6 @@ export default function HomePage() {
 
     return (
         <div className="home-container">
-            {/* Iconic Hero Console */}
             <section className="home-hero-console">
                 <div className="home-hero-top">
                     <div className="home-network-pill">
@@ -188,13 +179,22 @@ export default function HomePage() {
                     <div className="home-hero-buttons">
                         {session ? (
                             <>
-                                <Link to="/listings/new" className="btn-hero-orange">
-                                    <span>＋ Create Listing</span>
-                                    <ArrowRight size={15} />
-                                </Link>
-                                <a href="#browse-feed" className="btn-hero-glass">
-                                    Browse Available Food
-                                </a>
+                                {session.user?.role !== 'receiver' ? (
+                                    <>
+                                        <Link to="/listings/new" className="btn-hero-orange">
+                                            <span>＋ Create Listing</span>
+                                            <ArrowRight size={15} />
+                                        </Link>
+                                        <a href="#browse-feed" className="btn-hero-glass">
+                                            Browse Available Food
+                                        </a>
+                                    </>
+                                ) : (
+                                    <a href="#browse-feed" className="btn-hero-orange">
+                                        <span>Browse Available Food</span>
+                                        <ArrowRight size={15} />
+                                    </a>
+                                )}
                             </>
                         ) : (
                             <>
@@ -211,7 +211,6 @@ export default function HomePage() {
                 </div>
             </section>
 
-            {/* Category Filter Pills Control Bar */}
             <section className="home-filter-bar" id="browse-feed">
                 <div className="category-filter-group">
                     <button
@@ -282,7 +281,6 @@ export default function HomePage() {
                 </div>
             </section>
 
-            {/* Feed Header */}
             <div className="feed-header-row">
                 <h2>
                     <span>Live Surplus Food Feed</span>
@@ -291,7 +289,6 @@ export default function HomePage() {
                 <p>Verified food donations ready for collection</p>
             </div>
 
-            {/* Loading Skeleton State */}
             {loading && (
                 <div className="food-listings-grid">
                     {[1, 2, 3, 4, 5, 6].map((key) => (
@@ -307,7 +304,6 @@ export default function HomePage() {
                 </div>
             )}
 
-            {/* Error State */}
             {!loading && error && (
                 <div className="panel" style={{ padding: '32px 24px', textAlign: 'center', margin: '16px 0', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
                     <AlertCircle size={32} style={{ color: '#f87171', margin: '0 auto 12px' }} />
@@ -320,7 +316,6 @@ export default function HomePage() {
                 </div>
             )}
 
-            {/* Food Listings Feed Grid */}
             {!loading && !error && (
                 <div className="food-listings-grid">
                     {filteredListings.map((item) => {
@@ -328,7 +323,6 @@ export default function HomePage() {
                         const timeInfo = formatPickupDeadline(deadline, item.status, currentTime);
                         return (
                             <article className={`food-listing-card ${timeInfo.isExpired ? 'expired-card' : ''}`} key={item._id}>
-                                {/* Food Photo Box */}
                                 <div className="card-photo-box">
                                     <img
                                         src={item.photoUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=480&h=320&auto=format&fit=crop&q=70&fm=webp'}
@@ -346,7 +340,6 @@ export default function HomePage() {
                                     </span>
                                 </div>
 
-                                {/* Card Content Body */}
                                 <div className="card-content-body">
                                     <div className="card-food-info">
                                         <h3 className="food-title-text">{item.foodName}</h3>
@@ -394,7 +387,6 @@ export default function HomePage() {
                 </div>
             )}
 
-            {/* Empty State */}
             {!loading && !error && filteredListings.length === 0 && (
                 <div className="panel" style={{ padding: '40px 20px', textAlign: 'center', marginTop: '16px' }}>
                     <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#ffffff' }}>

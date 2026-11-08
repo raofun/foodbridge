@@ -2,20 +2,19 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { connectDB } from './config/db.js';
-import { seedBangladeshiListings } from './config/seedBangladeshiData.js';
 import errorHandler from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.js';
 import listingRoutes from './routes/listings.js';
 
 const app = express();
 
-// Security & Parsing Middleware
+
 const rawOrigin = process.env.CLIENT_ORIGIN || '';
 const configuredOrigins = rawOrigin.split(',').map(o => o.trim().replace(/\/+$/, '')).filter(Boolean);
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, server-to-server)
+   
     if (!origin) return callback(null, true);
 
     const cleanOrigin = origin.replace(/\/+$/, '');
@@ -58,7 +57,6 @@ async function start() {
   }
 
   await connectDB();
-  await seedBangladeshiListings();
   app.listen(port, () => console.log(`FoodBridge API running at http://localhost:${port}`));
 }
 

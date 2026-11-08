@@ -79,3 +79,23 @@ export async function googleLogin(req, res, next) {
 export function currentUser(req, res) {
   res.json({ user: { id: req.user.id, name: req.user.name, email: req.user.email, role: req.user.role } });
 }
+
+export async function resetPassword(req, res, next) {
+  try {
+    const { email, password } = req.body;
+    if (!email?.trim() || !password) {
+      return res.status(400).json({ message: 'Email and new password are required.' });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters.' });
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with this email address.' });
+    }
+    user.passwordHash = await bcrypt.hash(password, 12);
+    await user.save();
+    res.json({ message: 'Password reset successful. Please sign in with your new password.' });
+  } catch (error) { next(error); }
+}

@@ -9,6 +9,8 @@
     "build": "npm --prefix client run build",
     "build:client": "npm --prefix client run build",
     "start": "npm --prefix server start",
+    "seed": "npm --prefix server run seed",
+    "seed:clean": "npm --prefix server run seed:clean",
     "install:all": "npm --prefix client install && npm --prefix server install"
   }
 }

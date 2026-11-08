@@ -1,25 +1,89 @@
 # Dependencies
 node_modules/
 */node_modules/
+**/.pnpm-store/
 
-# Production build outputs
+# Production build outputs & caches
 dist/
 */dist/
+build/
+*/build/
+.vite/
+*/.vite/
+.cache/
+.parcel-cache/
+.eslintcache
+.prettiercache
 
-# Environment configurations
+# Environment configurations & local secrets
 .env
 .env.*
 !.env.example
 */.env
 */.env.*
 !*/.env.example
+**/.env
+**/.env.*
+!**/.env.example
+*.pem
+*.key
+*.cert
+*.crt
 
 # OS metadata
 .DS_Store
 */.DS_Store
+**/.DS_Store
+._*
+**/._*
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE & Editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.cursor/
+.zed/
 
 # Test coverage & logs
 coverage/
 *.log
+logs/
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Database exports & local data
+*.sqlite
+*.sqlite3
+*.dump
+*.seed.json
+
+# Postman collections & local testing
+postman/
+.postman/
+*/postman/
+*/.postman/
+
+# Agent configurations & workspace skills
+.agents/
+agents/
+*/.agents/
+*/agents/
+skills-lock.json
+AGENTS.md
+agents.md
+.gemini/
+.claude/
+.antigravity/
+
+# Documentation & project handoffs
+docs/
+*/docs/
