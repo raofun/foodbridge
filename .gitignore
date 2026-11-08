@@ -79,13 +79,29 @@ postman/
 agents/
 */.agents/
 */agents/
+**/.agents/
+**/agents/
 skills-lock.json
+**/skills-lock.json
 AGENTS.md
 agents.md
+**/AGENTS.md
+**/agents.md
 .gemini/
 .claude/
 .antigravity/
+.cursor/
+.cursorrules
 
-# Documentation & project handoffs
+# Documentation, reports & project handoffs
 docs/
 */docs/
+**/docs/
+*.doc
+*.docx
+*Report*
+*CA1*
+*HANDOFF*.md
+*handoff*.md
+**/*handoff*.md
+**/*HANDOFF*.md
