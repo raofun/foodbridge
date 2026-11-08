@@ -30,7 +30,7 @@ build/
 *.cert
 *.crt
 
-# OS metadata
+# OS metadata & temporary locks
 .DS_Store
 */.DS_Store
 **/.DS_Store
@@ -39,6 +39,8 @@ build/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+~$*
+**/~$*
 
 # IDE & Editor settings
 .vscode/

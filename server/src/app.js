@@ -37,7 +37,19 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Health Check
+// Root & Health Check Endpoints
+app.get('/', (_req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'foodbridge-api',
+    message: 'FoodBridge API is live and healthy 🌿',
+    endpoints: {
+      health: '/api/health',
+      feed: '/api/listings/feed',
+    },
+  });
+});
+
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'foodbridge-api' });
 });
@@ -57,7 +69,7 @@ async function start() {
   }
 
   await connectDB();
-  app.listen(port, () => console.log(`FoodBridge API running at http://localhost:${port}`));
+  app.listen(port, '0.0.0.0', () => console.log(`FoodBridge API running on port ${port} (0.0.0.0:${port})`));
 }
 
 start().catch((error) => {

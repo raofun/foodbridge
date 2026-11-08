@@ -7,7 +7,8 @@ const API_BASE = rawBase;
 
 export async function apiRequest(path, { token, ...options } = {}) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 25000);
+  // 90-second timeout to accommodate Render free-tier cold starts (50-90s)
+  const timeoutId = setTimeout(() => controller.abort(), 90000);
 
   try {
     const response = await fetch(`${API_BASE}${path}`, {

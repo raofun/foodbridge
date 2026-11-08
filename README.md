@@ -14,21 +14,21 @@
 ## Table of Contents
 
 - [Project Overview](#project-overview)
-- [Key Features](#key-features)
+- [Functional Requirements Matrix (FR01 – FR09)](#functional-requirements-matrix-fr01--fr09)
 - [Technology Stack](#technology-stack)
 - [Application Architecture & Folder Layout](#application-architecture--folder-layout)
 - [Frontend Pages & Routes](#frontend-pages--routes)
-- [Complete API Reference by Page](#complete-api-reference-by-page)
-  - [1. Global Auth Session (`AuthContext.jsx`)](#1-global-auth-session-authcontextjsx)
-  - [2. User Registration (`RegisterPage.jsx`)](#2-user-registration-registerpagejsx)
-  - [3. User Login & Password Recovery (`LoginPage.jsx`)](#3-user-login--password-recovery-loginpagejsx)
-  - [4. Community Food Feed (`HomeLayout.jsx` & `HomePage.jsx`)](#4-community-food-feed-homelayoutjsx--homepagejsx)
-  - [5. Step 1: Create Food Listing (`FoodListingPage.jsx`)](#5-step-1-create-food-listing-foodlistingpagejsx)
-  - [6. Step 2: Food Safety & Handling Info (`FoodInformationPage.jsx`)](#6-step-2-food-safety--handling-info-foodinformationpagejsx)
-  - [7. Step 3: Schedule Pickup & Publish (`PickupSchedulePage.jsx`)](#7-step-3-schedule-pickup--publish-pickupschedulepagejsx)
-  - [8. Donor Dashboard (`MyListingsPage.jsx`)](#8-donor-dashboard-mylistingspagejsx)
-  - [9. System Health Check (`server/src/app.js`)](#9-system-health-check-serversrcappjs)
+- [Complete API Reference by Functional Requirement](#complete-api-reference-by-functional-requirement)
+  - [Global Auth Session (`AuthContext.jsx`)](#global-auth-session-authcontextjsx)
+  - [FR01: User Registration (`RegisterPage.jsx`)](#fr01-user-registration-registerpagejsx)
+  - [FR02: User Login & Password Recovery (`LoginPage.jsx`)](#fr02-user-login--password-recovery-loginpagejsx)
+  - [FR03: Community Feed & Donor Dashboard (`HomePage.jsx` & `MyListingsPage.jsx`)](#fr03-community-feed--donor-dashboard-homepagejsx--mylistingspagejsx)
+  - [FR04: Food Information (`FoodInformationPage.jsx`)](#fr04-food-information-foodinformationpagejsx)
+  - [FR05: Create Food Listing (`FoodListingPage.jsx`)](#fr05-create-food-listing-foodlistingpagejsx)
+  - [FR06: Pickup Scheduling & Publishing (`PickupSchedulePage.jsx`)](#fr06-pickup-scheduling--publishing-pickupschedulepagejsx)
+  - [System Health Check (`server/src/app.js`)](#system-health-check-serversrcappjs)
 - [Master API Endpoint Summary](#master-api-endpoint-summary)
+- [Future Functional Requirements Roadmap (FR07, FR08, FR09)](#future-functional-requirements-roadmap-fr07-fr08-fr09)
 - [Getting Started (Local Development Setup)](#getting-started-local-development-setup)
 - [Environment Variables Reference](#environment-variables-reference)
 - [Deployment & Free-Tier Optimization](#deployment--free-tier-optimization)
@@ -43,17 +43,19 @@ The application is architected as an API-first single-page application (SPA) pow
 
 ---
 
-## Key Features
+## Functional Requirements Matrix (FR01 – FR09)
 
-- **Role-Based Authentication**: Custom donor, receiver, and volunteer accounts with secure password hashing (`bcryptjs`), JSON Web Tokens (`JWT`), and one-tap **Google OAuth 2.0** integration.
-- **Guided 3-Step Donor Publishing Pipeline**:
-  1. **Food Details & Quantity**: Food title, description, category, quantity, unit, food type, dietary tags, allergens, and photo URL (creates a `draft`).
-  2. **Food Safety & Storage Info**: Preparation timestamps, storage temperature conditions, packaging details, and safety handling requirements.
-  3. **Pickup Window & Activation**: Address, specific access directions, pickup time-windows, and transitioning listing state to `available`.
-- **Dynamic Community Feed**: Real-time listing feed displaying active surplus food, donor contact profiles, dietary flags, and pickup deadlines.
-- **Smart Timestamp & Expiration Engine**: Automatic time calculation that sorts expired listings to the bottom with an inactive badge to prevent wasted pickup trips.
-- **Donor Management Dashboard**: Comprehensive tracking for drafts, active listings, and completed pickups with one-click continuation or deletion.
-- **Authentic Localized Seed Data**: Pre-configured with authentic Bangladeshi community food listings (Dhaka, Chittagong, Sylhet) for realistic testing and demonstration.
+| Requirement ID | Module / Feature | Status | Description |
+| :--- | :--- | :--- | :--- |
+| **FR01** | **User Registration** | ✅ Implemented | Multi-role account onboarding (Donor, Receiver, Volunteer) with email/password and Google OAuth 2.0. |
+| **FR02** | **User Login & Recovery** | ✅ Implemented | Secure email/password login, Google One Tap sign-in, JWT token generation, and password recovery. |
+| **FR03** | **Feed or Dashboard** | ✅ Implemented | Public discovery feed of active surplus food, live search, category filtering, and donor listing management dashboard. |
+| **FR04** | **Food Information** | ✅ Implemented | Comprehensive food preparation timestamps, storage condition/temperature guidelines, packaging details, and allergen warnings. |
+| **FR05** | **Create Listing** | ✅ Implemented | Guided food creation wizard: title, description, category, portion quantities, food type (cooked/raw), dietary tags, and photo. |
+| **FR06** | **Pickup Scheduling** | ✅ Implemented | Precise pickup time-window allocation, pickup address/access instructions, and publishing the listing to `available`. |
+| **FR07** | **Food Claiming & Reservations** | ⏳ Planned | Receiver portion claims, quantity limits, reservation confirmation, and remaining stock tracking. |
+| **FR08** | **Pickup Verification & Confirmation** | ⏳ Planned | Secure OTP / QR code exchange upon physical handover, recipient verification, and automated deadline closure. |
+| **FR09** | **Incident Reporting & Monitoring** | ⏳ Planned | Food safety incident reports, community feedback, volunteer transport coordination, and administrative moderation. |
 
 ---
 
@@ -71,7 +73,7 @@ The application is architected as an API-first single-page application (SPA) pow
 - **Framework**: Express.js
 - **Database**: MongoDB with Mongoose ODM
 - **Security**: JWT (`jsonwebtoken`), Bcrypt (`bcryptjs`), Google Auth Library (`google-auth-library`), CORS whitelist middleware
-- **Seed Utilities**: Built-in automated seed scripts for Bangladeshi food listings
+- **Seed Utilities**: Built-in on-demand CLI seed runner for test environments
 
 ---
 
@@ -87,18 +89,18 @@ foodbridge-app/
 │   │   │   ├── AuthFrame.jsx
 │   │   │   ├── DonorProfileSection.jsx
 │   │   │   ├── GoogleSignInButton.jsx
-│   │   │   ├── HomeLayout.jsx
+│   │   │   ├── HomeLayout.jsx  # FR03 - Feed layout wrapper & search bar
 │   │   │   └── ListingSteps.jsx
 │   │   ├── context/            # React context providers
 │   │   │   └── AuthContext.jsx # Global user session & auth state
 │   │   ├── pages/              # Main view screens
-│   │   │   ├── FoodInformationPage.jsx   # FR04 - Food safety & storage details
-│   │   │   ├── FoodListingPage.jsx       # FR03 - Food listing creation (Step 1)
-│   │   │   ├── HomePage.jsx              # Community surplus food feed
+│   │   │   ├── RegisterPage.jsx          # FR01 - Multi-role registration
 │   │   │   ├── LoginPage.jsx             # FR02 - Email & Google sign-in
-│   │   │   ├── MyListingsPage.jsx        # Donor listing management dashboard
-│   │   │   ├── PickupSchedulePage.jsx    # FR05 - Pickup scheduling (Step 3)
-│   │   │   └── RegisterPage.jsx          # FR01 - Multi-role registration
+│   │   │   ├── HomePage.jsx              # FR03 - Community surplus food feed
+│   │   │   ├── MyListingsPage.jsx        # FR03 - Donor listing dashboard
+│   │   │   ├── FoodInformationPage.jsx   # FR04 - Food safety & storage details
+│   │   │   ├── FoodListingPage.jsx       # FR05 - Create food listing
+│   │   │   └── PickupSchedulePage.jsx    # FR06 - Pickup scheduling & publishing
 │   │   ├── services/
 │   │   │   └── api.js          # Centralized fetch wrapper & interceptor
 │   │   ├── styles/             # Global CSS stylesheets
@@ -130,7 +132,7 @@ foodbridge-app/
 │   │   │   ├── listings.js
 │   │   │   └── pickupSchedules.js
 │   │   ├── app.js              # Server entry point & CORS configuration
-│   │   └── seed.js             # Standalone DB seeding runner
+│   │   └── seed.js             # Standalone on-demand DB seeding runner
 │   └── package.json
 │
 ├── .gitignore                  # Comprehensive production gitignore
@@ -142,25 +144,25 @@ foodbridge-app/
 
 ## Frontend Pages & Routes
 
-| Route | Page Component | Access Level | Purpose |
-| :--- | :--- | :--- | :--- |
-| `/` | `HomePage.jsx` | Public | Main community feed displaying published food listings, search, and category filters. |
-| `/register` | `RegisterPage.jsx` | Guest only | New user registration with role selection (Donor, Receiver, Volunteer). |
-| `/login` | `LoginPage.jsx` | Guest only | Sign in with email/password or Google OAuth; password reset modal. |
-| `/listings/new` | `FoodListingPage.jsx` | Donor only | **Step 1:** Create draft listing with food details, quantities, tags, and photo. |
-| `/listings/:id/information` | `FoodInformationPage.jsx` | Public / Donor | **Step 2:** View or edit preparation details, storage conditions, and allergen warnings. |
-| `/listings/:id/pickup` | `PickupSchedulePage.jsx` | Donor only | **Step 3:** Set pickup address, time window, and publish listing to `available`. |
-| `/listings/mine` | `MyListingsPage.jsx` | Donor only | Donor dashboard to review all drafts, active listings, and delete listings. |
+| FR ID | Route | Page Component | Access Level | Purpose |
+| :--- | :--- | :--- | :--- | :--- |
+| **FR01** | `/register` | `RegisterPage.jsx` | Guest only | New user registration with role selection (Donor, Receiver, Volunteer). |
+| **FR02** | `/login` | `LoginPage.jsx` | Guest only | Sign in with email/password or Google OAuth; password reset modal. |
+| **FR03** | `/` | `HomePage.jsx` | Public | Main community feed displaying published food listings, search, and category filters. |
+| **FR03** | `/listings/mine` | `MyListingsPage.jsx` | Donor only | Donor dashboard to review all drafts, active listings, and delete listings. |
+| **FR04** | `/listings/:id/information` | `FoodInformationPage.jsx` | Public / Donor | View or edit preparation details, storage conditions, and allergen warnings. |
+| **FR05** | `/listings/new` | `FoodListingPage.jsx` | Donor only | Create draft listing with food details, quantities, tags, and photo. |
+| **FR06** | `/listings/:id/pickup` | `PickupSchedulePage.jsx` | Donor only | Set pickup address, time window, and publish listing to `available`. |
 
 ---
 
-## Complete API Reference by Page
+## Complete API Reference by Functional Requirement
 
-Every frontend screen connects to the REST API via the centralized `client/src/services/api.js` client. Below is the complete mapping of API endpoints utilized by each page:
+Every frontend screen connects to the REST API via the centralized `client/src/services/api.js` client. Below is the complete mapping of API endpoints organized by functional requirement:
 
 ---
 
-### 1. Global Auth Session (`AuthContext.jsx`)
+### Global Auth Session (`AuthContext.jsx`)
 Maintains active login state across browser reloads.
 
 - **`GET /api/auth/me`**
@@ -186,7 +188,7 @@ Maintains active login state across browser reloads.
 
 ---
 
-### 2. User Registration (`RegisterPage.jsx`)
+### FR01: User Registration (`RegisterPage.jsx`)
 Handles account creation with specific user roles and Google OAuth signup.
 
 - **`POST /api/auth/register`**
@@ -222,7 +224,7 @@ Handles account creation with specific user roles and Google OAuth signup.
 
 ---
 
-### 3. User Login & Password Recovery (`LoginPage.jsx`)
+### FR02: User Login & Password Recovery (`LoginPage.jsx`)
 Handles authentication and demo account password resetting.
 
 - **`POST /api/auth/login`**
@@ -260,8 +262,8 @@ Handles authentication and demo account password resetting.
 
 ---
 
-### 4. Community Food Feed (`HomeLayout.jsx` & `HomePage.jsx`)
-Powers the central discovery feed of all available food donations.
+### FR03: Community Feed & Donor Dashboard (`HomePage.jsx` & `MyListingsPage.jsx`)
+Powers the central discovery feed of all available food donations and the donor management dashboard.
 
 - **`GET /api/listings/feed`**
   - **Invoked by**: `client/src/components/HomeLayout.jsx` (on mount and refresh)
@@ -301,46 +303,25 @@ Powers the central discovery feed of all available food donations.
       ]
     }
     ```
-  - **UI Action**: Populates feed cards, category filters, and live search. Passes listings downstream to child views via React Router's `<Outlet context={{ listings, ... }} />`.
+  - **UI Action**: Populates feed cards, category filters, and live search on `HomePage.jsx`.
 
----
-
-### 5. Step 1: Create Food Listing (`FoodListingPage.jsx`)
-Initial step of the 3-step listing creation wizard.
-
-- **`POST /api/listings`**
-  - **Invoked by**: `client/src/pages/FoodListingPage.jsx` (Save & Continue button)
+- **`GET /api/listings/mine`**
+  - **Invoked by**: `client/src/pages/MyListingsPage.jsx` (on mount)
   - **Auth Required**: `Bearer <token>` (Donor only)
-  - **Request Body**:
-    ```json
-    {
-      "title": "Biryani Portions",
-      "description": "Freshly cooked kacchi biryani from evening catering event.",
-      "category": "Prepared Meals",
-      "quantity": 20,
-      "unit": "servings",
-      "foodType": "cooked",
-      "dietary": ["Halal"],
-      "allergens": ["Dairy"],
-      "imageUrl": "https://images.unsplash.com/photo-..."
-    }
-    ```
-  - **Response Payload**:
-    ```json
-    {
-      "listing": {
-        "_id": "67302...",
-        "title": "Biryani Portions",
-        "status": "draft",
-        "donorId": "673..."
-      }
-    }
-    ```
-  - **UI Action**: Creates a persistent database document in `draft` status and navigates the donor to Step 2: `/listings/:id/information`.
+  - **Request Body**: None
+  - **Response Payload**: Array of all listings (draft, available, claimed, completed) owned by the logged-in donor.
+  - **UI Action**: Renders donor's listing cards sorted by newest updates, showing progress pills (Draft, Available, Claimed, Completed).
+
+- **`DELETE /api/listings/:id`**
+  - **Invoked by**: `client/src/pages/MyListingsPage.jsx` (Delete listing action)
+  - **Auth Required**: `Bearer <token>` (Owner / Donor only)
+  - **Request Body**: None
+  - **Response Payload**: `{ "success": true, "message": "Listing removed successfully" }`
+  - **UI Action**: Instantly removes listing from local state and database.
 
 ---
 
-### 6. Step 2: Food Safety & Handling Info (`FoodInformationPage.jsx`)
+### FR04: Food Information (`FoodInformationPage.jsx`)
 Comprehensive food safety, handling, storage, and preparation details screen.
 
 - **`GET /api/listings/:id/information`**
@@ -374,11 +355,46 @@ Comprehensive food safety, handling, storage, and preparation details screen.
       }
     }
     ```
-  - **UI Action**: Persists all safety details to MongoDB and automatically advances to Step 3: `/listings/:id/pickup`.
+  - **UI Action**: Persists all safety details to MongoDB and automatically advances to FR06 Pickup Scheduling (`/listings/:id/pickup`).
 
 ---
 
-### 7. Step 3: Schedule Pickup & Publish (`PickupSchedulePage.jsx`)
+### FR05: Create Food Listing (`FoodListingPage.jsx`)
+Initial step of the donor food listing creation wizard.
+
+- **`POST /api/listings`**
+  - **Invoked by**: `client/src/pages/FoodListingPage.jsx` (Save & Continue button)
+  - **Auth Required**: `Bearer <token>` (Donor only)
+  - **Request Body**:
+    ```json
+    {
+      "title": "Biryani Portions",
+      "description": "Freshly cooked kacchi biryani from evening catering event.",
+      "category": "Prepared Meals",
+      "quantity": 20,
+      "unit": "servings",
+      "foodType": "cooked",
+      "dietary": ["Halal"],
+      "allergens": ["Dairy"],
+      "imageUrl": "https://images.unsplash.com/photo-..."
+    }
+    ```
+  - **Response Payload**:
+    ```json
+    {
+      "listing": {
+        "_id": "67302...",
+        "title": "Biryani Portions",
+        "status": "draft",
+        "donorId": "673..."
+      }
+    }
+    ```
+  - **UI Action**: Creates a persistent database document in `draft` status and navigates the donor to FR04: `/listings/:id/information`.
+
+---
+
+### FR06: Pickup Scheduling & Publishing (`PickupSchedulePage.jsx`)
 Final stage of the donor pipeline to set pickup access and publish the donation.
 
 - **`GET /api/listings/:id`**
@@ -418,40 +434,7 @@ Final stage of the donor pipeline to set pickup access and publish the donation.
 
 ---
 
-### 8. Donor Dashboard (`MyListingsPage.jsx`)
-Management hub for donors to track their active, completed, and draft listings.
-
-- **`GET /api/listings/mine`**
-  - **Invoked by**: `client/src/pages/MyListingsPage.jsx` (on mount)
-  - **Auth Required**: `Bearer <token>` (Donor only)
-  - **Request Body**: None
-  - **Response Payload**:
-    ```json
-    {
-      "listings": [
-        {
-          "_id": "67302...",
-          "title": "Biryani Portions",
-          "status": "available",
-          "quantity": 20,
-          "unit": "servings",
-          "createdAt": "2026-11-08T16:30:00.000Z"
-        }
-      ]
-    }
-    ```
-  - **UI Action**: Renders donor's listing cards sorted by newest updates, showing progress pills (Draft, Available, Claimed, Completed).
-
-- **`DELETE /api/listings/:id`**
-  - **Invoked by**: `client/src/pages/MyListingsPage.jsx` (Delete listing action)
-  - **Auth Required**: `Bearer <token>` (Owner / Donor only)
-  - **Request Body**: None
-  - **Response Payload**: `{ "success": true, "message": "Listing removed successfully" }`
-  - **UI Action**: Instantly removes listing from local state and database.
-
----
-
-### 9. System Health Check (`server/src/app.js`)
+### System Health Check (`server/src/app.js`)
 
 - **`GET /api/health`**
   - **Invoked by**: Monitoring probes, hosting platforms (Render, Railway), or manual ping
@@ -462,22 +445,43 @@ Management hub for donors to track their active, completed, and draft listings.
 
 ## Master API Endpoint Summary
 
-| HTTP Method | API Path | Calling Page / Component | Auth Level | Key Operations |
-| :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/api/health` | System Monitor | Public | Health and uptime verification. |
-| `POST` | `/api/auth/register` | `RegisterPage.jsx` | Public | Register new user with designated role. |
-| `POST` | `/api/auth/login` | `LoginPage.jsx` | Public | Sign in with email/password; returns JWT. |
-| `POST` | `/api/auth/google` | `RegisterPage.jsx`, `LoginPage.jsx` | Public | Verify Google OAuth credential; login/register. |
-| `POST` | `/api/auth/reset-password` | `LoginPage.jsx` | Public | Reset password with validation. |
-| `GET` | `/api/auth/me` | `AuthContext.jsx` | `Bearer <token>` | Fetch authenticated user profile on app load. |
-| `GET` | `/api/listings/feed` | `HomeLayout.jsx`, `HomePage.jsx` | Public | Fetch public community feed with donor info. |
-| `POST` | `/api/listings` | `FoodListingPage.jsx` | `Bearer <token>` | **Step 1:** Create new food listing draft. |
-| `GET` | `/api/listings/mine` | `MyListingsPage.jsx` | `Bearer <token>` | Retrieve all listings owned by logged-in donor. |
-| `GET` | `/api/listings/:id` | `PickupSchedulePage.jsx` | `Bearer <token>` | Fetch specific listing draft to continue setup. |
-| `GET` | `/api/listings/:id/information` | `FoodInformationPage.jsx` | Optional Auth | Retrieve food safety, storage & donor details. |
-| `PATCH` | `/api/listings/:id/information` | `FoodInformationPage.jsx` | `Bearer <token>` | **Step 2:** Save food safety, storage & handling. |
-| `PATCH` | `/api/listings/:id/pickup` | `PickupSchedulePage.jsx` | `Bearer <token>` | **Step 3:** Save pickup window & publish listing. |
-| `DELETE` | `/api/listings/:id` | `MyListingsPage.jsx` | `Bearer <token>` | Permanently delete donor's food listing. |
+| FR ID | HTTP Method | API Path | Calling Page / Component | Auth Level | Key Operations |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| — | `GET` | `/api/health` | System Monitor | Public | Health and uptime verification. |
+| **FR01** | `POST` | `/api/auth/register` | `RegisterPage.jsx` | Public | Register new user with designated role. |
+| **FR02** | `POST` | `/api/auth/login` | `LoginPage.jsx` | Public | Sign in with email/password; returns JWT. |
+| **FR01/02** | `POST` | `/api/auth/google` | `RegisterPage.jsx`, `LoginPage.jsx` | Public | Verify Google OAuth credential; login/register. |
+| **FR02** | `POST` | `/api/auth/reset-password` | `LoginPage.jsx` | Public | Reset password with validation. |
+| — | `GET` | `/api/auth/me` | `AuthContext.jsx` | `Bearer <token>` | Fetch authenticated user profile on app load. |
+| **FR03** | `GET` | `/api/listings/feed` | `HomeLayout.jsx`, `HomePage.jsx` | Public | Fetch public community feed with donor info. |
+| **FR03** | `GET` | `/api/listings/mine` | `MyListingsPage.jsx` | `Bearer <token>` | Retrieve all listings owned by logged-in donor. |
+| **FR03** | `DELETE` | `/api/listings/:id` | `MyListingsPage.jsx` | `Bearer <token>` | Permanently delete donor's food listing. |
+| **FR04** | `GET` | `/api/listings/:id/information` | `FoodInformationPage.jsx` | Optional Auth | Retrieve food safety, storage & donor details. |
+| **FR04** | `PATCH` | `/api/listings/:id/information` | `FoodInformationPage.jsx` | `Bearer <token>` | Save food safety, storage & handling. |
+| **FR05** | `POST` | `/api/listings` | `FoodListingPage.jsx` | `Bearer <token>` | Create new food listing draft. |
+| **FR06** | `GET` | `/api/listings/:id` | `PickupSchedulePage.jsx` | `Bearer <token>` | Fetch specific listing draft to continue setup. |
+| **FR06** | `PATCH` | `/api/listings/:id/pickup` | `PickupSchedulePage.jsx` | `Bearer <token>` | Save pickup window & publish listing. |
+
+---
+
+## Future Functional Requirements Roadmap (FR07, FR08, FR09)
+
+The platform architecture is designed to seamlessly integrate the following planned modules in future development cycles:
+
+### 1. FR07: Food Claiming & Portion Reservations
+- **Portion Allocation**: Receivers and verified community partners can reserve specific portions of active surplus listings.
+- **Fair-Share Reservation Limits**: Prevent single-entity hoarding with configurable maximum portions per recipient per day.
+- **Dynamic Stock Depletion**: Automatic decrement of available listing portions in real-time, transitioning to `claimed` when fully reserved.
+
+### 2. FR08: Real-Time Pickup Verification & Handover
+- **Secure Handover Verification**: Generation of single-use numerical OTP or cryptographic QR codes shared between donor and recipient.
+- **Physical Handover Confirmation**: Donors scan or input recipient code upon collection to immediately mark the listing as `completed`.
+- **Automated Expiry & Closure**: Server-side cron/worker to auto-expire uncollected listings past their `pickupWindowEnd` deadline.
+
+### 3. FR09: Incident Reporting, Monitoring & Moderation
+- **Food Quality & Safety Flags**: Mechanism for recipients to report safety concerns, unhygienic packaging, or inaccurate listings.
+- **Volunteer Transport Routing**: Route matching for volunteers delivering food from donors to remote shelters or community centers.
+- **Administrative Moderation Console**: Dashboard for administrators to suspend repeat offenders, monitor surplus metrics, and inspect donation impact reports.
 
 ---
 
