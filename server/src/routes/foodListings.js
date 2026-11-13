@@ -1,9 +1,20 @@
 import { Router } from 'express';
-import { createListing, deleteListing, getListing, myListings } from '../controllers/foodListingController.js';
+import requireAuth, { optionalAuth } from '../middleware/requireAuth.js';
+import {
+  createListing,
+  deleteListing,
+  getListing,
+  myListings,
+  updateListing
+} from '../controllers/foodListingController.js';
 
 const router = Router();
-router.post('/', createListing);
-router.get('/mine', myListings);
-router.get('/:id', getListing);
-router.delete('/:id', deleteListing);
+
+router.post('/', requireAuth, createListing);
+router.get('/mine', requireAuth, myListings);
+router.get('/:id', optionalAuth, getListing);
+router.patch('/:id', requireAuth, updateListing);
+router.put('/:id', requireAuth, updateListing);
+router.delete('/:id', requireAuth, deleteListing);
+
 export default router;

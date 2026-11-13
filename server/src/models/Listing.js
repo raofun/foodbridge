@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const listingSchema = new mongoose.Schema({
   donor: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   foodName: { type: String, required: true, trim: true, maxlength: 120 },
-  description: { type: String, required: true, trim: true, maxlength: 2000 },
+  description: { type: String, trim: true, maxlength: 2000, default: '' },
   photoUrl: { type: String, trim: true, default: '' },
   quantity: { type: Number, required: true, min: 1 },
   portionUnit: { type: String, required: true, trim: true, maxlength: 40 },

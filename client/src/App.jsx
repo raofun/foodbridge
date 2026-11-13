@@ -83,21 +83,21 @@ export default function App() {
         <Route
           path="listings/:listingId/pickup"
           element={
-            <ProtectedRoute>
+            <DonorRoute>
               <Suspense fallback={<LoadingFallback />}>
                 <PickupSchedulePage />
               </Suspense>
-            </ProtectedRoute>
+            </DonorRoute>
           }
         />
         <Route
           path="listings/mine"
           element={
-            <ProtectedRoute>
+            <DonorRoute>
               <Suspense fallback={<LoadingFallback />}>
                 <MyListingsPage />
               </Suspense>
-            </ProtectedRoute>
+            </DonorRoute>
           }
         />
       </Route>

@@ -14,7 +14,8 @@
 ## Table of Contents
 
 - [Project Overview](#project-overview)
-- [Functional Requirements Matrix (FR01 – FR09)](#functional-requirements-matrix-fr01--fr09)
+  - [Meaningful Role Separation (Donors vs. Receivers vs. Volunteers)](#meaningful-role-separation-donors-vs-receivers-vs-volunteers)
+- [Functional Requirements Matrix (FR01 – FR10)](#functional-requirements-matrix-fr01--fr10)
 - [Technology Stack](#technology-stack)
 - [Application Architecture & Folder Layout](#application-architecture--folder-layout)
 - [Frontend Pages & Routes](#frontend-pages--routes)
@@ -22,13 +23,17 @@
   - [Global Auth Session (`AuthContext.jsx`)](#global-auth-session-authcontextjsx)
   - [FR01: User Registration (`RegisterPage.jsx`)](#fr01-user-registration-registerpagejsx)
   - [FR02: User Login & Password Recovery (`LoginPage.jsx`)](#fr02-user-login--password-recovery-loginpagejsx)
-  - [FR03: Community Feed & Donor Dashboard (`HomePage.jsx` & `MyListingsPage.jsx`)](#fr03-community-feed--donor-dashboard-homepagejsx--mylistingspagejsx)
-  - [FR04: Food Information (`FoodInformationPage.jsx`)](#fr04-food-information-foodinformationpagejsx)
+  - [FR03: Community Feed (`HomePage.jsx`)](#fr03-community-feed-homepagejsx)
+  - [FR04: Food Information & Safety Passport (`FoodInformationPage.jsx`)](#fr04-food-information--safety-passport-foodinformationpagejsx)
   - [FR05: Create Food Listing (`FoodListingPage.jsx`)](#fr05-create-food-listing-foodlistingpagejsx)
   - [FR06: Pickup Scheduling & Publishing (`PickupSchedulePage.jsx`)](#fr06-pickup-scheduling--publishing-pickupschedulepagejsx)
+  - [FR07: Search & Filtering (`HomePage.jsx` & `HomeLayout.jsx`)](#fr07-search--filtering-homepagejsx--homelayoutjsx)
+  - [FR08: My listings- Edit, Delete (`MyListingsPage.jsx`)](#fr08-my-listings--edit-delete-mylistingspagejsx)
   - [System Health Check (`server/src/app.js`)](#system-health-check-serversrcappjs)
 - [Master API Endpoint Summary](#master-api-endpoint-summary)
-- [Future Functional Requirements Roadmap (FR07, FR08, FR09)](#future-functional-requirements-roadmap-fr07-fr08-fr09)
+- [Future Functional Requirements Roadmap (FR09 & FR10)](#future-functional-requirements-roadmap-fr09--fr10)
+  - [FR09: Food claiming & Reservation](#fr09-food-claiming--reservation)
+  - [FR10: Pickup Verification & Confirmation](#fr10-pickup-verification--confirmation)
 - [Getting Started (Local Development Setup)](#getting-started-local-development-setup)
 - [Environment Variables Reference](#environment-variables-reference)
 - [Deployment & Free-Tier Optimization](#deployment--free-tier-optimization)
@@ -41,21 +46,35 @@ FoodBridge bridges surplus food from donors to local communities before it goes 
 
 The application is architected as an API-first single-page application (SPA) powered by React and Vite, supported by a modular Express/Node.js REST backend and MongoDB database.
 
+### Meaningful Role Separation (Donors vs. Receivers vs. Volunteers)
+
+To ensure the integrity of community surplus distribution, FoodBridge enforces strict, meaningful role boundaries:
+
+* **Donors** (Restaurants, Bakeries, Caterers, Community Kitchens, Households):
+  * **Can**: Create food listings, configure food safety passports, schedule pickup windows, manage and delete their listings, and observe the community feed.
+  * **Cannot**: Request, reserve, or receive food donations. Their interface is tailored for surplus dispatching and observation.
+* **Receivers** (Shelters, Community Charities, Low-Income Families, Students):
+  * **Can**: Browse the real-time community feed, inspect verified food safety passports, search by area and pickup times, and claim/receive food portions.
+  * **Cannot**: Create, edit, schedule, or delete food listings.
+* **Volunteers** (Community Couriers, Dispatch Helpers):
+  * **Can**: Assist in neighborhood delivery coordination and verify pickup handovers between donors and recipients.
+
 ---
 
-## Functional Requirements Matrix (FR01 – FR09)
+## Functional Requirements Matrix (FR01 – FR10)
 
 | Requirement ID | Module / Feature | Status | Description |
 | :--- | :--- | :--- | :--- |
 | **FR01** | **User Registration** | ✅ Implemented | Multi-role account onboarding (Donor, Receiver, Volunteer) with email/password and Google OAuth 2.0. |
 | **FR02** | **User Login & Recovery** | ✅ Implemented | Secure email/password login, Google One Tap sign-in, JWT token generation, and password recovery. |
-| **FR03** | **Feed or Dashboard** | ✅ Implemented | Public discovery feed of active surplus food, live search, category filtering, and donor listing management dashboard. |
-| **FR04** | **Food Information** | ✅ Implemented | Comprehensive food preparation timestamps, storage condition/temperature guidelines, packaging details, and allergen warnings. |
-| **FR05** | **Create Listing** | ✅ Implemented | Guided food creation wizard: title, description, category, portion quantities, food type (cooked/raw), dietary tags, and photo. |
-| **FR06** | **Pickup Scheduling** | ✅ Implemented | Precise pickup time-window allocation, pickup address/access instructions, and publishing the listing to `available`. |
-| **FR07** | **Food Claiming & Reservations** | ⏳ Planned | Receiver portion claims, quantity limits, reservation confirmation, and remaining stock tracking. |
-| **FR08** | **Pickup Verification & Confirmation** | ⏳ Planned | Secure OTP / QR code exchange upon physical handover, recipient verification, and automated deadline closure. |
-| **FR09** | **Incident Reporting & Monitoring** | ⏳ Planned | Food safety incident reports, community feedback, volunteer transport coordination, and administrative moderation. |
+| **FR03** | **Community Feed** | ✅ Implemented | Real-time public discovery feed displaying published food listings with live availability indicators, portion counts, and donor profile badges. |
+| **FR04** | **Food Information** | ✅ Implemented | Comprehensive Food Freshness & Quality Passport: preparation timestamps, storage environment, temperature verification, dietary tags, and allergen warnings. |
+| **FR05** | **Create Food Listing** | ✅ Implemented | Guided surplus creation wizard: title, category, portion quantities, packaging description, and high-efficiency client-compressed photo upload (canvas JPEG 0.80) or image link. |
+| **FR06** | **Pickup Scheduling** | ✅ Implemented | Single authoritative collection schedule: opening and closing time window, physical address, Dhaka neighborhood presets, and publishing listing to `available`. |
+| **FR07** | **Search & Filtering** | ✅ Implemented | **Filter by area, food category, availability & pickup time.** Real-time multi-facet filtering across active community surplus donations. |
+| **FR08** | **My listings- Edit, Delete** | ✅ Implemented | **Allows users to view, edit and delete their published food listings.** Dedicated donor dashboard to manage active listings, continue draft setups, or remove listings. |
+| **FR09** | **Food claiming & Reservation** | ⏳ Planned Roadmap | **Allows users to claim available food donations and reserve them for pickup.** Dynamic portion reduction, fair-share caps, and real-time stock status transitions. |
+| **FR10** | **Pickup Verification & Confirmation** | ⏳ Planned Roadmap | **Use a reservation specific code to confirm collection.** Secure alphanumeric token/QR verification exchange upon physical collection to finalize handover. |
 
 ---
 
@@ -123,7 +142,7 @@ foodbridge-app/
 │   │   │   ├── errorHandler.js
 │   │   │   └── requireAuth.js
 │   │   ├── models/             # Mongoose schemas
-│   │   │   ├── FoodListing.js
+│   │   │   ├── Listing.js
 │   │   │   └── User.js
 │   │   ├── routes/             # Express API route endpoints
 │   │   │   ├── auth.js
@@ -148,11 +167,14 @@ foodbridge-app/
 | :--- | :--- | :--- | :--- | :--- |
 | **FR01** | `/register` | `RegisterPage.jsx` | Guest only | New user registration with role selection (Donor, Receiver, Volunteer). |
 | **FR02** | `/login` | `LoginPage.jsx` | Guest only | Sign in with email/password or Google OAuth; password reset modal. |
-| **FR03** | `/` | `HomePage.jsx` | Public | Main community feed displaying published food listings, search, and category filters. |
-| **FR03** | `/listings/mine` | `MyListingsPage.jsx` | Donor only | Donor dashboard to review all drafts, active listings, and delete listings. |
-| **FR04** | `/listings/:id/information` | `FoodInformationPage.jsx` | Public / Donor | View or edit preparation details, storage conditions, and allergen warnings. |
-| **FR05** | `/listings/new` | `FoodListingPage.jsx` | Donor only | Create draft listing with food details, quantities, tags, and photo. |
-| **FR06** | `/listings/:id/pickup` | `PickupSchedulePage.jsx` | Donor only | Set pickup address, time window, and publish listing to `available`. |
+| **FR03** | `/` | `HomePage.jsx` | Public | Real-time community discovery feed displaying active food donations with portion counts and donor info. |
+| **FR04** | `/listings/:id/information` | `FoodInformationPage.jsx` | Public / Donor | Comprehensive food safety passport, storage verification, dietary tags, and collection window details. |
+| **FR05** | `/listings/new` | `FoodListingPage.jsx` | Donor only | Multi-mode surplus food creator with canvas-compressed device photo upload, presets, or image links. |
+| **FR06** | `/listings/:id/pickup` | `PickupSchedulePage.jsx` | Donor only | Configure pickup address, quick Dhaka area presets, collection opening/closing times, and publish listing. |
+| **FR07** | `/` (Search Toolbar) | `HomeLayout.jsx` & `HomePage.jsx` | Public | **Search & Filtering**: Filter by area, food category, availability & pickup time in real time. |
+| **FR08** | `/listings/mine` | `MyListingsPage.jsx` | Donor only | **My listings- Edit, Delete**: Allows users to view, edit, and delete their published food listings. |
+| **FR09** | `/listings/:id/claim` | Claim Modal (Planned) | Receiver only | **Food claiming & Reservation**: Allows users to claim available food donations and reserve them for pickup. |
+| **FR10** | `/listings/:id/verify` | Verification Modal (Planned) | Donor / Receiver | **Pickup Verification & Confirmation**: Use a reservation specific code to confirm collection. |
 
 ---
 
@@ -262,121 +284,119 @@ Handles authentication and demo account password resetting.
 
 ---
 
-### FR03: Community Feed & Donor Dashboard (`HomePage.jsx` & `MyListingsPage.jsx`)
-Powers the central discovery feed of all available food donations and the donor management dashboard.
+### FR03: Community Feed (`HomePage.jsx`)
+Powers the central real-time discovery feed of all available surplus food donations for community members, receivers, and observing donors.
 
 - **`GET /api/listings/feed`**
-  - **Invoked by**: `client/src/components/HomeLayout.jsx` (on mount and refresh)
+  - **Invoked by**: `client/src/components/HomeLayout.jsx` & `client/src/pages/HomePage.jsx` (on mount, interval, and route transitions)
   - **Auth Required**: Public (No auth required)
-  - **Request Body**: None
+  - **Query Parameters**:
+    - `category` *(optional)*: Filter by category (`meals`, `bakery`, `produce`, `fruits`, `dairy`, `packaged`, `beverages`, `other`, or `all`).
   - **Response Payload**:
     ```json
     {
       "listings": [
         {
           "_id": "67301...",
-          "title": "Fresh Shingara & Vegetable Samosa Batch",
+          "foodName": "Fresh Shingara & Vegetable Samosa Batch",
           "description": "Surplus freshly fried shingara and vegetable samosas.",
-          "category": "Prepared Meals",
-          "foodType": "cooked",
+          "category": "bakery",
           "quantity": 35,
-          "unit": "pieces",
+          "portionUnit": "pieces",
+          "photoUrl": "https://images.unsplash.com/photo-...",
+          "foodCondition": "fresh",
+          "storageDetails": "Room temperature in covered bakery trays",
+          "safetyNotes": "Contains gluten. Best consumed within 6 hours.",
+          "preparedAt": "2026-11-08T16:00:00.000Z",
+          "useByAt": "2026-11-08T23:00:00.000Z",
+          "pickupLocation": "Dhanmondi 27, Dhaka",
+          "pickupOpensAt": "2026-11-08T18:00:00.000Z",
+          "pickupClosesAt": "2026-11-08T22:30:00.000Z",
+          "pickupDeadline": "2026-11-08T22:30:00.000Z",
           "status": "available",
-          "dietary": ["Vegetarian"],
-          "allergens": ["Gluten"],
-          "packaging": "Clean, covered cardboard pastry boxes",
-          "storageTemperature": "Room Temperature",
-          "pickupWindowStart": "2026-11-08T18:00:00.000Z",
-          "pickupWindowEnd": "2026-11-08T22:30:00.000Z",
-          "pickupLocation": {
-            "address": "Dhanmondi 27, Dhaka",
-            "city": "Dhaka"
-          },
-          "donorId": {
-            "_id": "673...",
+          "createdAt": "2026-11-08T16:30:00.000Z",
+          "donor": {
             "name": "Bikrampur Mistanna Bhandar",
-            "organizationName": "Bikrampur Sweets & Snacks",
-            "phone": "+8801711223344",
-            "city": "Dhaka"
+            "role": "donor"
           }
         }
       ]
     }
     ```
-  - **UI Action**: Populates feed cards, category filters, and live search on `HomePage.jsx`.
-
-- **`GET /api/listings/mine`**
-  - **Invoked by**: `client/src/pages/MyListingsPage.jsx` (on mount)
-  - **Auth Required**: `Bearer <token>` (Donor only)
-  - **Request Body**: None
-  - **Response Payload**: Array of all listings (draft, available, claimed, completed) owned by the logged-in donor.
-  - **UI Action**: Renders donor's listing cards sorted by newest updates, showing progress pills (Draft, Available, Claimed, Completed).
-
-- **`DELETE /api/listings/:id`**
-  - **Invoked by**: `client/src/pages/MyListingsPage.jsx` (Delete listing action)
-  - **Auth Required**: `Bearer <token>` (Owner / Donor only)
-  - **Request Body**: None
-  - **Response Payload**: `{ "success": true, "message": "Listing removed successfully" }`
-  - **UI Action**: Instantly removes listing from local state and database.
+  - **UI Action**: Populates feed cards, active portion count badges, live countdown clocks, and donor attribution pills. Enforces role-specific actions: receivers see *"View details & receive"*, while donors see *"View food details"* with a clear banner stating donors cannot claim items.
 
 ---
 
-### FR04: Food Information (`FoodInformationPage.jsx`)
-Comprehensive food safety, handling, storage, and preparation details screen.
+### FR04: Food Information & Safety Passport (`FoodInformationPage.jsx`)
+Comprehensive food freshness, handling conditions, safe storage temperatures, and preparation verification screen.
 
 - **`GET /api/listings/:id/information`**
-  - **Invoked by**: `client/src/pages/FoodInformationPage.jsx` (on page load)
-  - **Auth Required**: Optional / Public for published listings; Donor-only for drafts.
+  - **Invoked by**: `client/src/pages/FoodInformationPage.jsx` (on mount)
+  - **Auth Required**: Optional / Public for published (`available`/`closed`) listings; Donor-only for `draft` records.
   - **Request Body**: None
-  - **Response Payload**: Returns full listing record with populated `donorId` (name, organization, contact phone, city) and safety fields.
-  - **UI Action**: Pre-populates all form fields (preparation date, storage condition, temperature, packaging notes) from the database. Also powers public viewing for receivers inspecting food details before pickup.
+  - **Response Payload**:
+    ```json
+    {
+      "listing": {
+        "_id": "67301...",
+        "foodName": "Fresh Shingara & Vegetable Samosa Batch",
+        "category": "bakery",
+        "quantity": 35,
+        "portionUnit": "pieces",
+        "foodCondition": "fresh",
+        "storageDetails": "Room temperature in covered bakery trays",
+        "safetyNotes": "Contains gluten. Best consumed within 6 hours.",
+        "preparedAt": "2026-11-08T16:00:00.000Z",
+        "useByAt": "2026-11-08T23:00:00.000Z",
+        "pickupLocation": "Dhanmondi 27, Dhaka",
+        "pickupOpensAt": "2026-11-08T18:00:00.000Z",
+        "pickupClosesAt": "2026-11-08T22:30:00.000Z",
+        "status": "available",
+        "donor": {
+          "name": "Bikrampur Mistanna Bhandar",
+          "role": "donor",
+          "email": "contact@bikrampur.com"
+        }
+      },
+      "isOwner": false,
+      "isDraft": false
+    }
+    ```
+  - **UI Action**: Renders the complete Food Safety & Freshness Passport. Allows receivers to inspect food hygiene, allergens, and preparation details before requesting pickup.
 
 - **`PATCH /api/listings/:id/information`**
-  - **Invoked by**: `client/src/pages/FoodInformationPage.jsx` (Save & Proceed to Schedule button)
-  - **Auth Required**: `Bearer <token>` (Owner / Donor only)
+  - **Invoked by**: `client/src/pages/FoodInformationPage.jsx` (Save & Proceed button during wizard)
+  - **Auth Required**: `Bearer <token>` (Owner / Donor only; receivers receive 403 Forbidden)
   - **Request Body**:
     ```json
     {
       "preparedAt": "2026-11-08T16:00:00.000Z",
-      "bestBefore": "2026-11-09T02:00:00.000Z",
-      "storageTemperature": "Keep Refrigerated (0-4°C)",
-      "packaging": "Sealed aluminum food containers",
-      "handlingInstructions": "Reheat thoroughly before serving. Keep refrigerated until collection."
+      "storageDetails": "Keep refrigerated below 4°C in covered aluminum containers",
+      "foodCondition": "refrigerated",
+      "useByAt": "2026-11-09T12:00:00.000Z",
+      "safetyNotes": "Contains dairy. Reheat thoroughly before consumption."
     }
     ```
-  - **Response Payload**:
-    ```json
-    {
-      "listing": {
-        "_id": "67302...",
-        "storageTemperature": "Keep Refrigerated (0-4°C)",
-        "packaging": "Sealed aluminum food containers",
-        "status": "draft"
-      }
-    }
-    ```
-  - **UI Action**: Persists all safety details to MongoDB and automatically advances to FR06 Pickup Scheduling (`/listings/:id/pickup`).
+  - **Response Payload**: `{ "listing": { ... } }`
+  - **UI Action**: Persists food safety parameters to MongoDB and advances the donor to Step 3: Pickup Scheduling (`/listings/:id/pickup`).
 
 ---
 
 ### FR05: Create Food Listing (`FoodListingPage.jsx`)
-Initial step of the donor food listing creation wizard.
+Initial step of the donor surplus food creation wizard, focused strictly on food identity, categorization, portion size, and visual documentation.
 
 - **`POST /api/listings`**
   - **Invoked by**: `client/src/pages/FoodListingPage.jsx` (Save & Continue button)
-  - **Auth Required**: `Bearer <token>` (Donor only)
+  - **Auth Required**: `Bearer <token>` (Donor only; receivers receive 403 Forbidden)
   - **Request Body**:
     ```json
     {
-      "title": "Biryani Portions",
-      "description": "Freshly cooked kacchi biryani from evening catering event.",
-      "category": "Prepared Meals",
-      "quantity": 20,
-      "unit": "servings",
-      "foodType": "cooked",
-      "dietary": ["Halal"],
-      "allergens": ["Dairy"],
-      "imageUrl": "https://images.unsplash.com/photo-..."
+      "foodName": "Chicken Biryani Catering Surplus",
+      "category": "meals",
+      "quantity": 25,
+      "portionUnit": "servings",
+      "description": "Hot catering surplus packed in clean thermal food warmers.",
+      "photoUrl": "data:image/jpeg;base64,... (or https://images.unsplash.com/...)"
     }
     ```
   - **Response Payload**:
@@ -384,25 +404,36 @@ Initial step of the donor food listing creation wizard.
     {
       "listing": {
         "_id": "67302...",
-        "title": "Biryani Portions",
+        "foodName": "Chicken Biryani Catering Surplus",
+        "category": "meals",
+        "quantity": 25,
+        "portionUnit": "servings",
         "status": "draft",
-        "donorId": "673..."
+        "donor": {
+          "_id": "673...",
+          "name": "Dhaka Catering Co.",
+          "role": "donor"
+        }
       }
     }
     ```
-  - **UI Action**: Creates a persistent database document in `draft` status and navigates the donor to FR04: `/listings/:id/information`.
+  - **UI Action & Features**:
+    - **Flexible Image Selection**: Donors can choose high-definition food presets, supply an external web image URL, or upload directly from their device.
+    - **Client-Side Canvas Compression**: When a device photo is selected, it is automatically compressed client-side (JPEG quality 0.80, max 1200px width/height) to ensure rapid uploads, minimal bandwidth usage, and zero server storage bloat.
+    - **Clean, Minimal Wizard**: Date and pickup schedule inputs are omitted from Step 1 to keep listing creation quick, distraction-free, and simple.
+    - Saves initial listing in `draft` status and navigates donor to Step 2 (`/listings/:id/information`).
 
 ---
 
 ### FR06: Pickup Scheduling & Publishing (`PickupSchedulePage.jsx`)
-Final stage of the donor pipeline to set pickup access and publish the donation.
+Final stage of the donor listing creation pipeline to establish collection hours, designate pickup locations, and publish the listing.
 
-- **`GET /api/listings/:id`**
+- **`GET /api/listings/:id`** *(or `/api/listings/:id/pickup`)*
   - **Invoked by**: `client/src/pages/PickupSchedulePage.jsx` (on mount)
   - **Auth Required**: `Bearer <token>` (Owner / Donor only)
   - **Request Body**: None
-  - **Response Payload**: Returns draft listing details to verify ownership and prefill default pickup location from the donor's profile.
-  - **UI Action**: Validates listing state before rendering schedule forms.
+  - **Response Payload**: Listing details to verify ownership and pre-populate saved schedule and location data.
+  - **UI Action**: Validates that Step 2 (Food Information) has been completed before allowing schedule configuration.
 
 - **`PATCH /api/listings/:id/pickup`**
   - **Invoked by**: `client/src/pages/PickupSchedulePage.jsx` (Publish Listing button)
@@ -410,13 +441,9 @@ Final stage of the donor pipeline to set pickup access and publish the donation.
   - **Request Body**:
     ```json
     {
-      "pickupWindowStart": "2026-11-08T20:00:00.000Z",
-      "pickupWindowEnd": "2026-11-08T23:00:00.000Z",
-      "pickupLocation": {
-        "address": "House 12, Road 4, Sector 3, Uttara",
-        "city": "Dhaka",
-        "instructions": "Call upon arrival at the security gate."
-      }
+      "pickupLocation": "House 14, Road 7, Sector 4, Uttara, Dhaka (Ring bell at reception)",
+      "pickupOpensAt": "2026-11-08T18:30:00.000Z",
+      "pickupClosesAt": "2026-11-08T22:00:00.000Z"
     }
     ```
   - **Response Payload**:
@@ -425,12 +452,80 @@ Final stage of the donor pipeline to set pickup access and publish the donation.
       "listing": {
         "_id": "67302...",
         "status": "available",
-        "pickupWindowStart": "2026-11-08T20:00:00.000Z",
-        "pickupWindowEnd": "2026-11-08T23:00:00.000Z"
+        "pickupLocation": "House 14, Road 7, Sector 4, Uttara, Dhaka (Ring bell at reception)",
+        "pickupOpensAt": "2026-11-08T18:30:00.000Z",
+        "pickupClosesAt": "2026-11-08T22:00:00.000Z",
+        "pickupDeadline": "2026-11-08T22:00:00.000Z"
       }
     }
     ```
-  - **UI Action**: Switches listing status from `draft` to `available`. Displays success state and redirects donor to `/listings/mine` or the public feed.
+  - **UI Action**: Switches listing status from `draft` to `available`. Synchronizes `pickupDeadline` with closing time, renders celebratory publishing confirmation, and redirects donor to `/listings/mine` or the community feed.
+
+---
+
+### FR07: Search & Filtering (`HomePage.jsx` & `HomeLayout.jsx`)
+**Filter by area, food category, availability & pickup time.** Provides a responsive, multi-facet discovery engine so recipients can locate suitable surplus food quickly before it expires.
+
+- **Core Capabilities**:
+  1. **Filter by Area**: Instant filtering by neighborhood or location keyword (e.g. *Dhanmondi*, *Gulshan*, *Uttara*, *Mirpur*, *Mohammadpur*, *Banani*).
+  2. **Filter by Food Category**: Interactive category pills (`Prepared Meals`, `Bakery & Bread`, `Fresh Produce`, `Fruits`, `Dairy & Eggs`, `Packaged & Canned`, `Beverages`, `Other`).
+  3. **Filter by Availability**: Active surplus listings in `available` state are highlighted and prioritized at the top of the feed; listings past their pickup deadline or manually marked closed are automatically demoted or filtered out.
+  4. **Filter by Pickup Time**: Live deadline computation (`formatPickupDeadline`) formats remaining pickup collection windows (*"Pickup before 25 October, 2026, 7:00 PM"*), flagging urgency and highlighting same-day collection items.
+
+- **API Endpoint**:
+  - **`GET /api/listings/feed?category=:category`**
+    - **Invoked by**: `client/src/components/HomeLayout.jsx` & `client/src/pages/HomePage.jsx`
+    - **Auth Required**: Public
+    - **Query Options**: Server-side category filtering combined with client-side reactive filtering on query text, area neighborhood, and pickup window urgency.
+    - **Response Payload**: Array of populated public food listings matching the query parameters.
+
+---
+
+### FR08: My listings- Edit, Delete (`MyListingsPage.jsx`)
+**Allows users to view, edit and delete their published food listings.** A dedicated management portal built exclusively for food donors.
+
+- **`GET /api/listings/mine`**
+  - **Invoked by**: `client/src/pages/MyListingsPage.jsx` (on mount)
+  - **Auth Required**: `Bearer <token>` (Donor only; receivers receive 403 Forbidden)
+  - **Request Body**: None
+  - **Response Payload**:
+    ```json
+    {
+      "listings": [
+        {
+          "_id": "67302...",
+          "foodName": "Fresh Shingara & Vegetable Samosa Batch",
+          "description": "Surplus freshly fried shingara and vegetable samosas.",
+          "category": "bakery",
+          "quantity": 35,
+          "portionUnit": "pieces",
+          "photoUrl": "https://images.unsplash.com/photo-...",
+          "status": "available",
+          "pickupLocation": "Dhanmondi 27, Dhaka",
+          "pickupOpensAt": "2026-11-08T18:00:00.000Z",
+          "pickupClosesAt": "2026-11-08T22:30:00.000Z",
+          "foodCondition": "fresh",
+          "storageDetails": "Room temperature in covered trays",
+          "createdAt": "2026-11-08T16:00:00.000Z"
+        }
+      ]
+    }
+    ```
+  - **UI Action**: Displays donor's published donations, active pickups, and incomplete drafts in chronological order. Draft listings render an intelligent *"Continue setup →"* link directing the donor to either Step 2 (`/listings/:id/information`) or Step 3 (`/listings/:id/pickup`) based on completion state.
+
+- **`DELETE /api/listings/:id`**
+  - **Invoked by**: `client/src/pages/MyListingsPage.jsx` (Delete listing button with confirmation)
+  - **Auth Required**: `Bearer <token>` (Owner / Donor only; receivers receive 403 Forbidden)
+  - **Request Body**: None
+  - **Response Payload**: `{ "success": true, "message": "Listing removed successfully." }`
+  - **UI Action**: Immediately removes the listing from MongoDB and updates the UI state with a deletion notification banner.
+
+- **`PATCH /api/listings/:id`** *(or `PUT`)*
+  - **Invoked by**: Donor management workflows
+  - **Auth Required**: `Bearer <token>` (Owner / Donor only)
+  - **Request Body**: Updated listing fields (`foodName`, `quantity`, `portionUnit`, `category`, `description`, `photoUrl`, `pickupDeadline`).
+  - **Response Payload**: `{ "listing": { ... } }`
+  - **UI Action**: Updates published listing parameters while guarding against unauthorized edits or modifications to closed listings.
 
 ---
 
@@ -448,38 +543,51 @@ Final stage of the donor pipeline to set pickup access and publish the donation.
 | FR ID | HTTP Method | API Path | Calling Page / Component | Auth Level | Key Operations |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | — | `GET` | `/api/health` | System Monitor | Public | Health and uptime verification. |
-| **FR01** | `POST` | `/api/auth/register` | `RegisterPage.jsx` | Public | Register new user with designated role. |
-| **FR02** | `POST` | `/api/auth/login` | `LoginPage.jsx` | Public | Sign in with email/password; returns JWT. |
-| **FR01/02** | `POST` | `/api/auth/google` | `RegisterPage.jsx`, `LoginPage.jsx` | Public | Verify Google OAuth credential; login/register. |
+| **FR01** | `POST` | `/api/auth/register` | `RegisterPage.jsx` | Public | Register new user with designated role (Donor, Receiver, Volunteer). |
+| **FR02** | `POST` | `/api/auth/login` | `LoginPage.jsx` | Public | Sign in with email/password; returns JWT session token. |
+| **FR01/02** | `POST` | `/api/auth/google` | `RegisterPage.jsx`, `LoginPage.jsx` | Public | Verify Google OAuth credential; login or provision account. |
 | **FR02** | `POST` | `/api/auth/reset-password` | `LoginPage.jsx` | Public | Reset password with validation. |
-| — | `GET` | `/api/auth/me` | `AuthContext.jsx` | `Bearer <token>` | Fetch authenticated user profile on app load. |
-| **FR03** | `GET` | `/api/listings/feed` | `HomeLayout.jsx`, `HomePage.jsx` | Public | Fetch public community feed with donor info. |
-| **FR03** | `GET` | `/api/listings/mine` | `MyListingsPage.jsx` | `Bearer <token>` | Retrieve all listings owned by logged-in donor. |
-| **FR03** | `DELETE` | `/api/listings/:id` | `MyListingsPage.jsx` | `Bearer <token>` | Permanently delete donor's food listing. |
-| **FR04** | `GET` | `/api/listings/:id/information` | `FoodInformationPage.jsx` | Optional Auth | Retrieve food safety, storage & donor details. |
-| **FR04** | `PATCH` | `/api/listings/:id/information` | `FoodInformationPage.jsx` | `Bearer <token>` | Save food safety, storage & handling. |
-| **FR05** | `POST` | `/api/listings` | `FoodListingPage.jsx` | `Bearer <token>` | Create new food listing draft. |
-| **FR06** | `GET` | `/api/listings/:id` | `PickupSchedulePage.jsx` | `Bearer <token>` | Fetch specific listing draft to continue setup. |
-| **FR06** | `PATCH` | `/api/listings/:id/pickup` | `PickupSchedulePage.jsx` | `Bearer <token>` | Save pickup window & publish listing. |
+| — | `GET` | `/api/auth/me` | `AuthContext.jsx` | `Bearer <token>` | Fetch authenticated user profile on app load / token refresh. |
+| **FR03** | `GET` | `/api/listings/feed` | `HomeLayout.jsx`, `HomePage.jsx` | Public | Fetch real-time public community surplus feed with donor badges. |
+| **FR04** | `GET` | `/api/listings/:id/information` | `FoodInformationPage.jsx` | Optional Auth | Retrieve Food Freshness & Quality Passport details. |
+| **FR04** | `PATCH` | `/api/listings/:id/information` | `FoodInformationPage.jsx` | `Bearer <token>` | Save food safety, storage environment & handling guidelines. |
+| **FR05** | `POST` | `/api/listings` | `FoodListingPage.jsx` | `Bearer <token>` | Create new food listing draft with canvas-compressed image or link. |
+| **FR06** | `GET` | `/api/listings/:id` | `PickupSchedulePage.jsx` | `Bearer <token>` | Fetch specific listing draft to verify progress and setup schedule. |
+| **FR06** | `PATCH` | `/api/listings/:id/pickup` | `PickupSchedulePage.jsx` | `Bearer <token>` | Save collection window, pickup location & publish listing as `available`. |
+| **FR07** | `GET` | `/api/listings/feed?category=...` | `HomePage.jsx`, `HomeLayout.jsx` | Public | **Search & Filtering**: Filter by area, food category, availability & pickup time. |
+| **FR08** | `GET` | `/api/listings/mine` | `MyListingsPage.jsx` | `Bearer <token>` | **My listings**: Retrieve all food donations owned by authenticated donor. |
+| **FR08** | `DELETE` | `/api/listings/:id` | `MyListingsPage.jsx` | `Bearer <token>` | **Delete listing**: Permanently delete donor's food listing. |
+| **FR08** | `PATCH` | `/api/listings/:id` | `MyListingsPage.jsx` | `Bearer <token>` | **Edit listing**: Update listing parameters, quantity, or description. |
 
 ---
 
-## Future Functional Requirements Roadmap (FR07, FR08, FR09)
+## Future Functional Requirements Roadmap (FR09 & FR10)
 
-The platform architecture is designed to seamlessly integrate the following planned modules in future development cycles:
+The FoodBridge architecture is designed to integrate the following planned modules seamlessly in upcoming release cycles:
 
-### 1. FR07: Food Claiming & Portion Reservations
-- **Portion Allocation**: Receivers and verified community partners can reserve specific portions of active surplus listings.
-- **Fair-Share Reservation Limits**: Prevent single-entity hoarding with configurable maximum portions per recipient per day.
-- **Dynamic Stock Depletion**: Automatic decrement of available listing portions in real-time, transitioning to `claimed` when fully reserved.
+### FR09: Food claiming & Reservation
+> **Allows users to claim available food donations and reserve them for pickup.**
 
-### 2. FR08: Real-Time Pickup Verification & Handover
-- **Secure Handover Verification**: Generation of single-use numerical OTP or cryptographic QR codes shared between donor and recipient.
-- **Physical Handover Confirmation**: Donors scan or input recipient code upon collection to immediately mark the listing as `completed`.
-- **Automated Expiry & Closure**: Server-side cron/worker to auto-expire uncollected listings past their `pickupWindowEnd` deadline.
+- **Portion Allocation**: Receivers and verified community partners can reserve specific portions of active surplus listings according to their immediate need.
+- **Fair-Share Reservation Limits**: Enforces daily per-user portion caps to prevent single-entity hoarding and guarantee equitable distribution.
+- **Dynamic Stock Depletion**: Real-time decrement of remaining available portions. When all portions are claimed, the listing automatically transitions from `available` to `claimed`.
+- **Planned API Endpoints**:
+  - `POST /api/listings/:id/claim`: Submits claim request with requested portion count and estimated pickup time.
+  - `GET /api/listings/claims/mine`: Receiver dashboard to track pending, approved, and past reservations.
 
-### 3. FR09: Incident Reporting, Monitoring & Moderation
-- **Food Quality & Safety Flags**: Mechanism for recipients to report safety concerns, unhygienic packaging, or inaccurate listings.
+### FR10: Pickup Verification & Confirmation
+> **Use a reservation specific code to confirm collection.**
+
+- **Secure Handover Verification Code**: Upon placing a reservation, the system generates a unique, single-use 6-character alphanumeric verification code (and scannable QR code) issued exclusively to the claiming receiver.
+- **Physical Handover Authentication**: At collection, the receiver presents their code to the donor. The donor inputs or scans the code to confirm the physical exchange of food.
+- **Automatic Completion & Audit Trail**: Verifying the code instantly transitions the listing to `completed`, records the handover timestamp, and closes the transaction.
+- **Auto-Expiry Cancellation**: Unclaimed or uncollected listings past their `pickupClosesAt` window are automatically transitioned to `closed` to maintain feed hygiene.
+- **Planned API Endpoints**:
+  - `POST /api/listings/:id/verify-pickup`: Validates receiver's reservation code and marks transaction complete.
+  - `POST /api/listings/:id/cancel-claim`: Allows receiver to release reserved portions if unable to attend.
+
+### Extended Platform Roadmap (Post-Launch)
+- **Incident Reporting & Food Quality Flags**: Mechanism for recipients to report packaging defects, unhygienic conditions, or inaccurate descriptions.
 - **Volunteer Transport Routing**: Route matching for volunteers delivering food from donors to remote shelters or community centers.
 - **Administrative Moderation Console**: Dashboard for administrators to suspend repeat offenders, monitor surplus metrics, and inspect donation impact reports.
 
