@@ -505,6 +505,21 @@
     box-shadow: 0 6px 18px var(--fb-orange-glow);
 }
 
+.btn-card-receive.donor-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: #e2e8f0;
+    box-shadow: none;
+}
+
+.btn-card-receive.donor-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    transform: translateY(-1px);
+}
+
 /* Modals */
 
 .modal-backdrop-dark {

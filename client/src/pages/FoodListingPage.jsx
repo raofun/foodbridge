@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
     ArrowRight,
@@ -9,7 +9,11 @@ import {
     UtensilsCrossed,
     Camera,
     Clock,
-    Loader2
+    Loader2,
+    Upload,
+    Link2,
+    X,
+    CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { apiRequest } from '../services/api.js';
@@ -31,13 +35,13 @@ const CATEGORIES = [
 const COMMON_UNITS = ['boxes', 'servings', 'packets', 'kg', 'platters'];
 
 const PHOTO_PRESETS = [
-    { label: 'Warm Meal', url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=720&auto=format&fit=crop&q=80' },
-    { label: 'Biryani / Rice', url: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=720&auto=format&fit=crop&q=80' },
-    { label: 'Artisan Bakery', url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=720&auto=format&fit=crop&q=80' },
-    { label: 'Fresh Fruits', url: 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=720&auto=format&fit=crop&q=80' },
-    { label: 'Vegetables', url: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=720&auto=format&fit=crop&q=80' },
-    { label: 'Dairy & Sweets', url: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=720&auto=format&fit=crop&q=80' },
-    { label: 'Beverages', url: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=720&auto=format&fit=crop&q=80' },
+    { label: '🍲 Warm Meal', url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=720&auto=format&fit=crop&q=80' },
+    { label: '🍛 Biryani / Rice', url: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=720&auto=format&fit=crop&q=80' },
+    { label: '🥖 Artisan Bakery', url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=720&auto=format&fit=crop&q=80' },
+    { label: '🍎 Fresh Fruits', url: 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=720&auto=format&fit=crop&q=80' },
+    { label: '🥗 Vegetables', url: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=720&auto=format&fit=crop&q=80' },
+    { label: '🥛 Dairy & Sweets', url: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=720&auto=format&fit=crop&q=80' },
+    { label: '🧃 Beverages', url: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=720&auto=format&fit=crop&q=80' },
 ];
 
 export default function FoodListingPage() {
@@ -54,20 +58,22 @@ export default function FoodListingPage() {
         return null;
     }
 
-    const defaultDeadline = () => {
-        const d = new Date(Date.now() + 4 * 3600000);
-        return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-    };
-
     const [form, setForm] = useState({
         foodName: '',
         category: 'meals',
         quantity: '10',
         portionUnit: 'boxes',
-        pickupDeadline: defaultDeadline(),
         description: '',
         photoUrl: '',
     });
+
+    const [photoMode, setPhotoMode] = useState('upload'); // 'upload' | 'url'
+    const [uploadedFileName, setUploadedFileName] = useState('');
+    const [uploadedFileSize, setUploadedFileSize] = useState('');
+    const [isDragging, setIsDragging] = useState(false);
+    const [uploadError, setUploadError] = useState('');
+    const [isProcessingFile, setIsProcessingFile] = useState(false);
+    const fileInputRef = useRef(null);
 
     const [submitting, setSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
@@ -77,12 +83,99 @@ export default function FoodListingPage() {
         if (errorMessage) setErrorMessage('');
     };
 
+    const handleFileSelect = (file) => {
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            setUploadError('Please select a valid image file (JPEG, PNG, WEBP).');
+            return;
+        }
+        if (file.size > 15 * 1024 * 1024) {
+            setUploadError('Selected image exceeds 15MB limit. Please choose a smaller photo.');
+            return;
+        }
+
+        setUploadError('');
+        setIsProcessingFile(true);
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const rawDataUrl = event.target.result;
+            const img = new Image();
+            img.onload = () => {
+                // High-performance canvas downsampling and compression
+                const maxDim = 1200;
+                let { width, height } = img;
+                if (width > maxDim || height > maxDim) {
+                    if (width > height) {
+                        height = Math.round((height * maxDim) / width);
+                        width = maxDim;
+                    } else {
+                        width = Math.round((width * maxDim) / height);
+                        height = maxDim;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Compress as JPEG with 0.80 quality (fast load & lightweight)
+                const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.80);
+
+                const base64Length = optimizedDataUrl.length - (optimizedDataUrl.indexOf(',') + 1);
+                const compressedBytes = (base64Length * 3) / 4;
+                const compressedKb = Math.round(compressedBytes / 1024);
+                const compressedFormatted = compressedBytes > 1024 * 1024
+                    ? `${(compressedBytes / (1024 * 1024)).toFixed(1)} MB`
+                    : `${compressedKb} KB`;
+
+                const savings = Math.max(0, Math.round(((file.size - compressedBytes) / file.size) * 100));
+                const sizeLabel = savings > 10
+                    ? `${compressedFormatted} · compressed (-${savings}%)`
+                    : `${compressedFormatted} · compressed & optimized`;
+
+                handleChange('photoUrl', optimizedDataUrl);
+                setUploadedFileName(file.name);
+                setUploadedFileSize(sizeLabel);
+                setIsProcessingFile(false);
+            };
+            img.onerror = () => {
+                setUploadError('Unable to process this image. Please try another image file.');
+                setIsProcessingFile(false);
+            };
+            img.src = rawDataUrl;
+        };
+        reader.onerror = () => {
+            setUploadError('Failed to read image file from your device.');
+            setIsProcessingFile(false);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const clearPhoto = () => {
+        handleChange('photoUrl', '');
+        setUploadedFileName('');
+        setUploadedFileSize('');
+        setUploadError('');
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const handleSelectPreset = (presetUrl) => {
+        setUploadedFileName('');
+        setUploadedFileSize('');
+        setUploadError('');
+        handleChange('photoUrl', presetUrl);
+    };
+
     const validateForm = () => {
         if (!form.foodName.trim()) {
             return 'Please provide a clear title or name for the surplus food.';
-        }
-        if (!form.description.trim()) {
-            return 'Please write a brief description with packaging or ingredient details.';
         }
         const qtyNum = Number(form.quantity);
         if (!Number.isInteger(qtyNum) || qtyNum < 1) {
@@ -91,18 +184,8 @@ export default function FoodListingPage() {
         if (!form.portionUnit.trim()) {
             return 'Please specify the portion unit (e.g. boxes, servings, kg).';
         }
-        if (!form.pickupDeadline) {
-            return 'Please specify the required Pickup Deadline.';
-        }
-        const deadlineTime = new Date(form.pickupDeadline).getTime();
-        if (isNaN(deadlineTime)) {
-            return 'Please enter a valid date and time for the Pickup Deadline.';
-        }
-        if (deadlineTime <= Date.now()) {
-            return 'Pickup deadline cannot be in the past. Please select a future date and time.';
-        }
-        if (form.photoUrl && !/^https?:\/\//i.test(form.photoUrl.trim())) {
-            return 'Photo URL must begin with http:// or https://.';
+        if (form.photoUrl && !/^https?:\/\//i.test(form.photoUrl.trim()) && !/^data:image\//i.test(form.photoUrl.trim())) {
+            return 'Photo must be a valid image link (http/https) or an uploaded image file.';
         }
         return null;
     };
@@ -126,8 +209,6 @@ export default function FoodListingPage() {
                 quantity: parseInt(form.quantity, 10),
                 portionUnit: form.portionUnit.trim(),
                 photoUrl: form.photoUrl.trim() || undefined,
-                pickupDeadline: new Date(form.pickupDeadline).toISOString(),
-                pickupClosesAt: new Date(form.pickupDeadline).toISOString(),
             };
 
             const data = await apiRequest('/listings', {
@@ -277,36 +358,16 @@ export default function FoodListingPage() {
 
                     <div className="form-group">
                         <div className="form-label-row">
-                            <label htmlFor="pickupDeadline" className="form-label">
-                                Pickup Deadline <span className="req">*</span>
-                            </label>
-                            <span className="form-hint-char">Do not allow deadline in the past</span>
-                        </div>
-                        <input
-                            id="pickupDeadline"
-                            type="datetime-local"
-                            required
-                            min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
-                            className="form-input"
-                            value={form.pickupDeadline}
-                            onChange={(e) => handleChange('pickupDeadline', e.target.value)}
-                            disabled={submitting}
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <div className="form-label-row">
                             <label htmlFor="description" className="form-label">
-                                Detailed Description <span className="req">*</span>
+                                Detailed Description <span className="form-hint-char">(optional)</span>
                             </label>
                             <span className="form-hint-char">{form.description.length}/2000</span>
                         </div>
                         <textarea
                             id="description"
-                            required
                             maxLength={2000}
                             rows={3}
-                            placeholder="Describe ingredients, packaging (e.g. sealed foil boxes), and approximate dietary details..."
+                            placeholder="Describe ingredients, packaging (e.g. sealed foil boxes), and approximate dietary details (optional)..."
                             className="form-textarea"
                             value={form.description}
                             onChange={(e) => handleChange('description', e.target.value)}
@@ -314,45 +375,210 @@ export default function FoodListingPage() {
                         />
                     </div>
 
-                    <div className="form-group">
+                    <div className="form-group photo-upload-section">
                         <div className="form-label-row">
-                            <label htmlFor="photoUrl" className="form-label">
-                                Photo Image Link <span className="form-hint-char">(optional)</span>
+                            <label className="form-label">
+                                <Camera size={14} />
+                                <span>Food Photo</span>
+                                <span className="form-hint-char">(optional)</span>
                             </label>
-                        </div>
-                        <input
-                            id="photoUrl"
-                            type="url"
-                            placeholder="https://example.com/photo.jpg"
-                            className="form-input"
-                            value={form.photoUrl}
-                            onChange={(e) => handleChange('photoUrl', e.target.value)}
-                            disabled={submitting}
-                        />
-                        <div className="photo-presets-row">
-                            <span className="photo-preset-label">Quick sample photos:</span>
-                            {PHOTO_PRESETS.map((preset) => (
-                                <button
-                                    type="button"
-                                    key={preset.label}
-                                    className="photo-preset-btn"
-                                    onClick={() => handleChange('photoUrl', preset.url)}
-                                    disabled={submitting}
-                                >
-                                    {preset.label}
-                                </button>
-                            ))}
                             {form.photoUrl && (
                                 <button
                                     type="button"
-                                    className="photo-preset-btn"
-                                    style={{ color: '#f87171' }}
-                                    onClick={() => handleChange('photoUrl', '')}
+                                    className="btn-clear-photo"
+                                    onClick={clearPhoto}
                                     disabled={submitting}
                                 >
-                                    Clear Photo
+                                    <X size={12} />
+                                    <span>Remove Photo</span>
                                 </button>
                             )}
+                        </div>
+
+                        {/* Photo Input Mode Tabs */}
+                        <div className="photo-input-mode-tabs" role="tablist" aria-label="Photo selection method">
+                            <button
+                                type="button"
+                                role="tab"
+                                aria-selected={photoMode === 'upload'}
+                                className={`photo-mode-tab ${photoMode === 'upload' ? 'active' : ''}`}
+                                onClick={() => setPhotoMode('upload')}
+                                disabled={submitting}
+                            >
+                                <Upload size={14} />
+                                <span>Upload from Device</span>
+                            </button>
+                            <button
+                                type="button"
+                                role="tab"
+                                aria-selected={photoMode === 'url'}
+                                className={`photo-mode-tab ${photoMode === 'url' ? 'active' : ''}`}
+                                onClick={() => setPhotoMode('url')}
+                                disabled={submitting}
+                            >
+                                <Link2 size={14} />
+                                <span>Image Link</span>
+                            </button>
+                        </div>
+
+                        {/* Tab Content: Upload from Device */}
+                        {photoMode === 'upload' && (
+                            <div className="photo-upload-panel">
+                                <div
+                                    className={`photo-dropzone ${isDragging ? 'dragging' : ''} ${form.photoUrl?.startsWith('data:') ? 'has-file' : ''}`}
+                                    onDragOver={(e) => {
+                                        e.preventDefault();
+                                        setIsDragging(true);
+                                    }}
+                                    onDragLeave={() => setIsDragging(false)}
+                                    onDrop={(e) => {
+                                        e.preventDefault();
+                                        setIsDragging(false);
+                                        if (e.dataTransfer.files?.[0]) {
+                                            handleFileSelect(e.dataTransfer.files[0]);
+                                        }
+                                    }}
+                                    onClick={() => fileInputRef.current?.click()}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            fileInputRef.current?.click();
+                                        }
+                                    }}
+                                >
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/png, image/jpeg, image/jpg, image/webp"
+                                        className="sr-only"
+                                        onChange={(e) => {
+                                            if (e.target.files?.[0]) {
+                                                handleFileSelect(e.target.files[0]);
+                                            }
+                                        }}
+                                        disabled={submitting || isProcessingFile}
+                                    />
+
+                                    {isProcessingFile ? (
+                                        <div className="dropzone-content">
+                                            <Loader2 size={24} className="spinning" style={{ color: 'var(--fb-mint-spark)' }} />
+                                            <span className="dropzone-label">Compressing & optimizing image…</span>
+                                        </div>
+                                    ) : form.photoUrl?.startsWith('data:') ? (
+                                        <div className="dropzone-file-preview">
+                                            <img src={form.photoUrl} alt="Upload preview" className="dropzone-thumb" />
+                                            <div className="dropzone-file-meta">
+                                                <span className="dropzone-file-name">{uploadedFileName || 'Uploaded Photo'}</span>
+                                                <span className="dropzone-file-size">
+                                                    <CheckCircle2 size={13} />
+                                                    {uploadedFileSize}
+                                                </span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                className="btn-replace-upload"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    fileInputRef.current?.click();
+                                                }}
+                                            >
+                                                Change
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="dropzone-content">
+                                            <div className="dropzone-icon-circle">
+                                                <Upload size={18} />
+                                            </div>
+                                            <div className="dropzone-text">
+                                                <span className="dropzone-label">Click or drag image to upload from device</span>
+                                                <span className="dropzone-sub">Auto-compressed for fast loading · Supports JPG, PNG, WEBP</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                {uploadError && (
+                                    <p className="photo-upload-error">{uploadError}</p>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Tab Content: Image Link */}
+                        {photoMode === 'url' && (
+                            <div className="photo-url-panel">
+                                <input
+                                    id="photoUrl"
+                                    type="url"
+                                    placeholder="https://images.unsplash.com/... or paste image web link"
+                                    className="form-input"
+                                    value={form.photoUrl?.startsWith('data:') ? '' : form.photoUrl}
+                                    onChange={(e) => {
+                                        setUploadedFileName('');
+                                        setUploadedFileSize('');
+                                        setUploadError('');
+                                        handleChange('photoUrl', e.target.value);
+                                    }}
+                                    disabled={submitting}
+                                />
+                            </div>
+                        )}
+
+                        {/* Active Image Indicator Card (if a photo is active) */}
+                        {form.photoUrl && (
+                            <div className="active-photo-card">
+                                <img src={form.photoUrl} alt="Current food preview" className="active-photo-thumb" />
+                                <div className="active-photo-details">
+                                    <span className="active-photo-title">
+                                        {form.photoUrl.startsWith('data:')
+                                            ? (uploadedFileName || 'Attached from Device')
+                                            : PHOTO_PRESETS.find(p => p.url === form.photoUrl)?.label
+                                            ? `Sample: ${PHOTO_PRESETS.find(p => p.url === form.photoUrl).label}`
+                                            : 'Web Image URL'}
+                                    </span>
+                                    <span className="active-photo-source">
+                                        {form.photoUrl.startsWith('data:')
+                                            ? `Ready & compressed (${uploadedFileSize || 'Optimized'})`
+                                            : form.photoUrl.length > 45
+                                            ? `${form.photoUrl.slice(0, 42)}…`
+                                            : form.photoUrl}
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="btn-remove-active-photo"
+                                    onClick={clearPhoto}
+                                    title="Remove photo"
+                                    aria-label="Remove photo"
+                                >
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Demo Sample Photos / Presets */}
+                        <div className="photo-presets-block">
+                            <div className="photo-presets-header">
+                                <Sparkles size={13} style={{ color: 'var(--fb-mint-spark)' }} />
+                                <span className="photo-preset-label">Or select a demo picture:</span>
+                            </div>
+                            <div className="photo-presets-row">
+                                {PHOTO_PRESETS.map((preset) => {
+                                    const isSelected = form.photoUrl === preset.url;
+                                    return (
+                                        <button
+                                            type="button"
+                                            key={preset.label}
+                                            className={`photo-preset-btn ${isSelected ? 'active' : ''}`}
+                                            onClick={() => handleSelectPreset(preset.url)}
+                                            disabled={submitting}
+                                        >
+                                            {preset.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
 
@@ -426,7 +652,7 @@ export default function FoodListingPage() {
                                 {form.foodName || 'Untitled Surplus Food Donation'}
                             </h3>
                             <p className="preview-desc">
-                                {form.description || 'Provide a brief description of food contents, preparation style, and packaging to help receivers.'}
+                                {form.description || 'No description provided. You can add dietary and storage details in the next step.'}
                             </p>
 
                             <div className="preview-meta-row">
@@ -443,16 +669,10 @@ export default function FoodListingPage() {
                                 className="preview-donor-profile"
                             />
 
-                            {form.pickupDeadline && (
-                                <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#ff945e', fontWeight: 650 }}>
-                                    <Clock size={12} />
-                                    <span>
-                                        {new Date(form.pickupDeadline) <= new Date()
-                                            ? 'Pickup closed'
-                                             : `Pickup before ${new Date(form.pickupDeadline).getDate()} ${new Date(form.pickupDeadline).toLocaleString('en-US', { month: 'long' })}, ${new Date(form.pickupDeadline).getFullYear()}, ${new Date(form.pickupDeadline).toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`}
-                                    </span>
-                                </div>
-                            )}
+                            <div className="preview-schedule-note">
+                                <Clock size={12} />
+                                <span>Collection window scheduled in Step 3</span>
+                            </div>
                         </div>
                     </article>
 

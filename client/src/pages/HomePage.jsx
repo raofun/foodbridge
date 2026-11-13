@@ -372,11 +372,25 @@ export default function HomePage() {
                                         ) : (
                                             <button
                                                 type="button"
-                                                className="btn-card-receive"
+                                                className={`btn-card-receive ${session?.user?.role === 'donor' ? 'donor-btn' : ''}`}
                                                 onClick={() => openListing(item)}
                                             >
-                                                <span>View more to receive</span>
-                                                <ArrowRight size={13} />
+                                                {Boolean(session?.user?.id && String(item.donor?._id || item.donor) === String(session.user.id)) ? (
+                                                    <>
+                                                        <span>View your listing</span>
+                                                        <ArrowRight size={13} />
+                                                    </>
+                                                ) : session?.user?.role === 'donor' ? (
+                                                    <>
+                                                        <span>View food details</span>
+                                                        <ArrowRight size={13} />
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span>View more to receive</span>
+                                                        <ArrowRight size={13} />
+                                                    </>
+                                                )}
                                             </button>
                                         )}
                                     </div>

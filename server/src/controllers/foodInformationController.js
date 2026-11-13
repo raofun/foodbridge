@@ -1,8 +1,6 @@
 import Listing from '../models/Listing.js';
 
 const conditions = ['fresh', 'refrigerated', 'frozen', 'shelf-stable'];
-const categories = ['meals', 'bakery', 'produce', 'fruits', 'dairy', 'packaged', 'beverages', 'other'];
-
 
 export async function getFoodInformation(req, res, next) {
   try {
@@ -44,6 +42,9 @@ export async function getFoodInformation(req, res, next) {
 // module 2 will be used in create listing to update food information and edit listing to update info
 export async function saveFoodInformation(req, res, next) {
   try {
+    if (req.user?.role === 'receiver') {
+      return res.status(403).json({ message: 'Receivers are not permitted to manage food listings.' });
+    }
     const listing = await Listing.findOne({ _id: req.params.id, donor: req.user.id });
     if (!listing) return res.status(404).json({ message: 'Listing not found.' });
     if (listing.status !== 'draft') return res.status(409).json({ message: 'Only draft listings can be updated in this step.' });
@@ -59,38 +60,13 @@ export async function saveFoodInformation(req, res, next) {
     if (useByAt && new Date(useByAt) <= new Date(preparedAt)) return res.status(400).json({ message: 'Use-by time must be after preparation time.' });
     if (safetyNotes && safetyNotes.length > 1000) return res.status(400).json({ message: 'Safety notes must be 1000 characters or fewer.' });
 
-    
-    if (req.body.foodName?.trim()) listing.foodName = req.body.foodName.trim();
-    if (req.body.category && categories.includes(req.body.category)) listing.category = req.body.category;
-    if (req.body.description?.trim()) listing.description = req.body.description.trim();
-    if (req.body.quantity && Number(req.body.quantity) >= 1) listing.quantity = Math.floor(Number(req.body.quantity));
-    if (req.body.portionUnit?.trim()) listing.portionUnit = req.body.portionUnit.trim();
-    if (req.body.photoUrl !== undefined) {
-      const cleanPhoto = String(req.body.photoUrl || '').trim();
-      if (cleanPhoto && !/^https?:\/\//i.test(cleanPhoto) && !/^data:image\//i.test(cleanPhoto)) {
-        return res.status(400).json({ message: 'Photo must be a valid image or URL.' });
-      }
-      listing.photoUrl = cleanPhoto;
-    }
-
-    if (req.body.pickupDeadline || req.body.pickupClosesAt) {
-      const deadline = new Date(req.body.pickupDeadline || req.body.pickupClosesAt);
-      if (!Number.isFinite(deadline.getTime())) {
-        return res.status(400).json({ message: 'Enter a valid pickup deadline date and time.' });
-      }
-      if (deadline.getTime() <= Date.now()) {
-        return res.status(400).json({ message: 'Pickup deadline cannot be in the past.' });
-      }
-      listing.pickupDeadline = deadline;
-      listing.pickupClosesAt = deadline;
-    }
-
     listing.preparedAt = preparedAt;
     listing.storageDetails = storageDetails.trim();
     listing.foodCondition = foodCondition;
     listing.useByAt = useByAt || undefined;
     listing.safetyNotes = safetyNotes?.trim() || '';
     await listing.save();
+    await listing.populate('donor', 'name role email');
     res.json({ listing });
   } catch (error) { next(error); }
 }

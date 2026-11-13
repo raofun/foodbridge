@@ -4,6 +4,7 @@ import {
     UtensilsCrossed,
     Home,
     PlusCircle,
+    List,
     LogOut,
     ArrowRight,
     Sparkles,
@@ -177,18 +178,31 @@ export default function HomeLayout() {
                         </NavLink>
 
                         {session && session.user?.role !== 'receiver' && (
-                            <NavLink
-                                to="/listings/new"
-                                className={({ isActive }) =>
-                                    `nav-item${isActive || location.pathname.startsWith('/create-listing') ? ' selected' : ''}`
-                                }
-                            >
-                                <div className="nav-icon-box">
-                                    <PlusCircle size={15} />
-                                </div>
-                                <span className="nav-title">Create Listing</span>
-                                <span className="nav-pill-action">＋ New</span>
-                            </NavLink>
+                            <>
+                                <NavLink
+                                    to="/listings/new"
+                                    className={({ isActive }) =>
+                                        `nav-item${isActive || location.pathname.startsWith('/create-listing') ? ' selected' : ''}`
+                                    }
+                                >
+                                    <div className="nav-icon-box">
+                                        <PlusCircle size={15} />
+                                    </div>
+                                    <span className="nav-title">Create Listing</span>
+                                    <span className="nav-pill-action">＋ New</span>
+                                </NavLink>
+                                <NavLink
+                                    to="/listings/mine"
+                                    className={({ isActive }) =>
+                                        `nav-item${isActive ? ' selected' : ''}`
+                                    }
+                                >
+                                    <div className="nav-icon-box">
+                                        <List size={15} />
+                                    </div>
+                                    <span className="nav-title">My Listings</span>
+                                </NavLink>
+                            </>
                         )}
                     </div>
 
