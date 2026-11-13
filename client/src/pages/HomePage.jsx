@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import {
     Sparkles,
@@ -7,11 +7,12 @@ import {
     Clock,
     X,
     ArrowRight,
-    ChefHat,
     RotateCw,
     AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { apiRequest } from '../services/api.js';
+import FeedSearchFilter from '../components/FeedSearchFilter.jsx';
 import './HomePage.css';
 
 export function formatPickupDeadline(deadlineValue, status, currentTime = new Date()) {
@@ -56,9 +57,24 @@ export const formatPickupWindow = (opensAt, closesAt, status, currentTime) =>
 export default function HomePage() {
     const { session } = useAuth();
     const navigate = useNavigate();
-    const { feedListings, feedLoading: loading, feedError: error, reloadFeed } = useOutletContext();
-    const [activeCategory, setActiveCategory] = useState('all');
+    const {
+        feedListings: contextListings,
+        feedLoading: contextLoading,
+        feedError: contextError,
+        reloadFeed
+    } = useOutletContext();
+    const [filters, setFilters] = useState({
+        search: '',
+        area: 'all',
+        category: 'all',
+        availability: 'all',
+        pickupTime: 'all',
+    });
     const [currentTime, setCurrentTime] = useState(() => new Date());
+    const [customListings, setCustomListings] = useState([]);
+    const [filterLoading, setFilterLoading] = useState(false);
+    const [filterError, setFilterError] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -67,44 +83,79 @@ export default function HomePage() {
         return () => clearInterval(timer);
     }, []);
 
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(filters.search);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [filters.search]);
+
+    const isDefaultFilter = useMemo(() => {
+        return !debouncedSearch?.trim() &&
+            filters.area === 'all' &&
+            filters.category === 'all' &&
+            filters.availability === 'all' &&
+            filters.pickupTime === 'all';
+    }, [debouncedSearch, filters.area, filters.category, filters.availability, filters.pickupTime]);
+
+    const fetchFeed = useCallback(async (signal) => {
+        setFilterLoading(true);
+        setFilterError('');
+        try {
+            const params = new URLSearchParams();
+            if (debouncedSearch?.trim()) params.set('search', debouncedSearch.trim());
+            if (filters.area && filters.area !== 'all') params.set('area', filters.area);
+            if (filters.category && filters.category !== 'all') params.set('category', filters.category);
+            if (filters.availability && filters.availability !== 'all') params.set('availability', filters.availability);
+            if (filters.pickupTime && filters.pickupTime !== 'all') params.set('pickupTime', filters.pickupTime);
+
+            const queryStr = params.toString();
+            const endpoint = queryStr ? `/listings/feed?${queryStr}` : '/listings/feed';
+
+            const result = await apiRequest(endpoint, { signal });
+            setCustomListings(result.listings || []);
+        } catch (err) {
+            if (signal?.aborted) return;
+            setFilterError(err.message || 'Unable to load food donations.');
+        } finally {
+            if (!signal?.aborted) setFilterLoading(false);
+        }
+    }, [debouncedSearch, filters.area, filters.category, filters.availability, filters.pickupTime]);
+
+    useEffect(() => {
+        if (isDefaultFilter) return;
+        const controller = new AbortController();
+        fetchFeed(controller.signal);
+        return () => controller.abort();
+    }, [isDefaultFilter, fetchFeed]);
+
+    const feedListings = isDefaultFilter ? (contextListings || []) : customListings;
+    const loading = isDefaultFilter ? Boolean(contextLoading) : filterLoading;
+    const error = isDefaultFilter ? (contextError || '') : filterError;
+
+    const handleRetry = () => {
+        if (isDefaultFilter) {
+            reloadFeed?.();
+        } else {
+            fetchFeed();
+        }
+    };
+
     const [selectedListing, setSelectedListing] = useState(null);
     const [modalType, setModalType] = useState(null);
 
+    const isItemActive = useCallback((item) => {
+        const deadline = item.pickupDeadline || item.pickupClosesAt;
+        const isDeadlinePassed = Boolean(deadline && new Date(deadline) <= currentTime);
+        return item.status === 'available' && !isDeadlinePassed;
+    }, [currentTime]);
+
     const activeCount = useMemo(() => {
-        return feedListings.filter(item => {
-            const deadline = item.pickupDeadline || item.pickupClosesAt;
-            const isDeadlinePassed = Boolean(deadline && new Date(deadline) <= currentTime);
-            return item.status === 'available' && !isDeadlinePassed;
-        }).length;
-    }, [feedListings, currentTime]);
+        return feedListings.filter(isItemActive).length;
+    }, [feedListings, isItemActive]);
 
-    const filteredListings = useMemo(() => {
-        const isItemExpired = (item) => {
-            const deadline = item.pickupDeadline || item.pickupClosesAt;
-            const isDeadlinePassed = Boolean(deadline && new Date(deadline) <= currentTime);
-            return item.status === 'closed' || isDeadlinePassed;
-        };
-
-        const matching = feedListings.filter(item => {
-            return activeCategory === 'all' || item.category === activeCategory;
-        });
-
-        return [...matching].sort((a, b) => {
-            const aExpired = isItemExpired(a);
-            const bExpired = isItemExpired(b);
-            if (aExpired && !bExpired) return 1;
-            if (!aExpired && bExpired) return -1;
-            return 0;
-        });
-    }, [feedListings, activeCategory, currentTime]);
-
-    const visibleAvailableCount = useMemo(() => {
-        return filteredListings.filter(item => {
-            const deadline = item.pickupDeadline || item.pickupClosesAt;
-            const isDeadlinePassed = Boolean(deadline && new Date(deadline) <= currentTime);
-            return item.status === 'available' && !isDeadlinePassed;
-        }).length;
-    }, [filteredListings, currentTime]);
+    const totalCount = feedListings.length;
+    const filteredListings = feedListings;
 
     const openListing = (listing) => {
         const deadline = listing.pickupDeadline || listing.pickupClosesAt;
@@ -154,10 +205,10 @@ export default function HomePage() {
                     <div className="home-metrics-row">
                         <div className="metric-chip">
                             <span className="dot-live" />
-                            <span><strong>{activeCount}</strong> Active Donations</span>
+                            <span><strong>{activeCount}</strong> Active Meals</span>
                         </div>
                         <div className="metric-chip">
-                            <span><strong>&lt; 2 hrs</strong> Average Pickup</span>
+                            <span><strong>{totalCount}</strong> Total Meals</span>
                         </div>
                         <div className="metric-chip">
                             <span><strong>100%</strong> Free for Neighbors</span>
@@ -211,80 +262,19 @@ export default function HomePage() {
                 </div>
             </section>
 
-            <section className="home-filter-bar" id="browse-feed">
-                <div className="category-filter-group">
-                    <button
-                        type="button"
-                        className={`category-tag-btn ${activeCategory === 'all' ? 'active' : ''}`}
-                        onClick={() => setActiveCategory('all')}
-                    >
-                        <UtensilsCrossed size={14} />
-                        <span>All Surplus</span>
-                    </button>
-                    <button
-                        type="button"
-                        className={`category-tag-btn ${activeCategory === 'meals' ? 'active' : ''}`}
-                        onClick={() => setActiveCategory('meals')}
-                    >
-                        <ChefHat size={14} />
-                        <span>Cooked Meals</span>
-                    </button>
-                    <button
-                        type="button"
-                        className={`category-tag-btn ${activeCategory === 'bakery' ? 'active' : ''}`}
-                        onClick={() => setActiveCategory('bakery')}
-                    >
-                        <span>🥖 Artisan Bakery</span>
-                    </button>
-                    <button
-                        type="button"
-                        className={`category-tag-btn ${activeCategory === 'fruits' ? 'active' : ''}`}
-                        onClick={() => setActiveCategory('fruits')}
-                    >
-                        <span>🍎 Fresh Fruits</span>
-                    </button>
-                    <button
-                        type="button"
-                        className={`category-tag-btn ${activeCategory === 'produce' ? 'active' : ''}`}
-                        onClick={() => setActiveCategory('produce')}
-                    >
-                        <span>🥗 Vegetables & Greens</span>
-                    </button>
-                    <button
-                        type="button"
-                        className={`category-tag-btn ${activeCategory === 'dairy' ? 'active' : ''}`}
-                        onClick={() => setActiveCategory('dairy')}
-                    >
-                        <span>🥛 Dairy & Sweets</span>
-                    </button>
-                    <button
-                        type="button"
-                        className={`category-tag-btn ${activeCategory === 'packaged' ? 'active' : ''}`}
-                        onClick={() => setActiveCategory('packaged')}
-                    >
-                        <span>🥫 Packaged & Pantry</span>
-                    </button>
-                    <button
-                        type="button"
-                        className={`category-tag-btn ${activeCategory === 'beverages' ? 'active' : ''}`}
-                        onClick={() => setActiveCategory('beverages')}
-                    >
-                        <span>🧃 Beverages</span>
-                    </button>
-                    <button
-                        type="button"
-                        className={`category-tag-btn ${activeCategory === 'other' ? 'active' : ''}`}
-                        onClick={() => setActiveCategory('other')}
-                    >
-                        <span>📦 Other</span>
-                    </button>
-                </div>
-            </section>
+            <div id="browse-feed">
+                <FeedSearchFilter
+                    filters={filters}
+                    onFilterChange={setFilters}
+                    totalMatches={totalCount}
+                    activeMatches={activeCount}
+                />
+            </div>
 
             <div className="feed-header-row">
                 <h2>
                     <span>Live Surplus Food Feed</span>
-                    <span className="feed-count-pill">{visibleAvailableCount} Available</span>
+                    <span className="feed-count-pill">{activeCount} Active · {totalCount} Total</span>
                 </h2>
                 <p>Verified food donations ready for collection</p>
             </div>
@@ -309,7 +299,7 @@ export default function HomePage() {
                     <AlertCircle size={32} style={{ color: '#f87171', margin: '0 auto 12px' }} />
                     <h3 style={{ margin: '0 0 8px 0', fontSize: '17px', color: '#ffffff' }}>Unable to load surplus food</h3>
                     <p style={{ margin: '0 0 16px 0', color: 'var(--fb-text-sub)', fontSize: '13px' }}>{error}</p>
-                    <button type="button" onClick={reloadFeed} className="button button-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', margin: '0 auto' }}>
+                    <button type="button" onClick={handleRetry} className="button button-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', margin: '0 auto' }}>
                         <RotateCw size={14} />
                         <span>Try Again</span>
                     </button>
@@ -404,13 +394,30 @@ export default function HomePage() {
             {!loading && !error && filteredListings.length === 0 && (
                 <div className="panel" style={{ padding: '40px 20px', textAlign: 'center', marginTop: '16px' }}>
                     <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#ffffff' }}>
-                        {feedListings.length === 0 ? 'No surplus food currently available' : 'No surplus food in this category'}
+                        {feedListings.length === 0 ? 'No surplus food currently available' : 'No surplus food matches your search'}
                     </h3>
-                    <p style={{ margin: 0, color: 'var(--fb-text-sub)', fontSize: '13px' }}>
+                    <p style={{ margin: '0 0 16px 0', color: 'var(--fb-text-sub)', fontSize: '13px' }}>
                         {feedListings.length === 0
                             ? 'The community feed is currently empty. Check back soon or list surplus food to share.'
-                            : 'Select "All Surplus" above to browse all active donations.'}
+                            : 'Try adjusting your area, category, or search keywords to find available food.'}
                     </p>
+                    {feedListings.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => setFilters({
+                                search: '',
+                                area: 'all',
+                                category: 'all',
+                                availability: 'all',
+                                pickupTime: 'all',
+                            })}
+                            className="button button-primary"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', margin: '0 auto' }}
+                        >
+                            <RotateCw size={14} />
+                            <span>Reset All Filters</span>
+                        </button>
+                    )}
                 </div>
             )}
 

@@ -1,4 +1,5 @@
 import Listing from '../models/Listing.js';
+import { buildFeedFilter } from '../utils/listingFilter.js';
 
 const VALID_CATEGORIES = ['meals', 'bakery', 'produce', 'fruits', 'dairy', 'packaged', 'beverages', 'other'];
 
@@ -52,14 +53,12 @@ function validateListingBasics(body) {
 
 export async function getPublicFeed(req, res, next) {
     try {
-        const filter = { status: { $in: ['available', 'closed'] } };
-        if (req.query.category && req.query.category !== 'all') {
-            filter.category = req.query.category;
-        }
+        const filter = await buildFeedFilter(req.query);
 
         const listings = await Listing.find(filter)
+            .select('foodName description photoUrl quantity portionUnit category foodCondition pickupLocation pickupDeadline pickupClosesAt status createdAt donor')
             .sort({ createdAt: -1 })
-            .populate('donor', 'name role email')
+            .populate('donor', 'name role')
             .lean();
 
         const now = new Date();
@@ -78,13 +77,7 @@ export async function getPublicFeed(req, res, next) {
                 portionUnit: item.portionUnit,
                 category: item.category || 'meals',
                 foodCondition: item.foodCondition,
-                storageDetails: item.storageDetails,
-                safetyNotes: item.safetyNotes,
-                preparedAt: item.preparedAt,
-                useByAt: item.useByAt,
                 pickupLocation: item.pickupLocation,
-                pickupOpensAt: item.pickupOpensAt,
-                pickupClosesAt: item.pickupClosesAt,
                 pickupDeadline: deadline,
                 status,
                 createdAt: item.createdAt,
@@ -95,7 +88,33 @@ export async function getPublicFeed(req, res, next) {
             };
         });
 
-        res.json({ listings: publicListings });
+        publicListings.sort((a, b) => {
+            const aExpired = a.status === 'closed';
+            const bExpired = b.status === 'closed';
+            if (aExpired && !bExpired) return 1;
+            if (!aExpired && bExpired) return -1;
+
+            const aDeadline = new Date(a.pickupDeadline || a.pickupClosesAt || 0).getTime() || Infinity;
+            const bDeadline = new Date(b.pickupDeadline || b.pickupClosesAt || 0).getTime() || Infinity;
+            return aDeadline - bDeadline;
+        });
+
+        const allPublished = await Listing.find({ status: { $in: ['available', 'closed'] } })
+            .select('status pickupDeadline pickupClosesAt')
+            .lean();
+
+        const globalTotalCount = allPublished.length;
+        const globalActiveCount = allPublished.filter(item => {
+            const deadline = item.pickupDeadline || item.pickupClosesAt;
+            const isDeadlinePassed = Boolean(deadline && new Date(deadline) <= now);
+            return item.status === 'available' && !isDeadlinePassed;
+        }).length;
+
+        res.json({
+            listings: publicListings,
+            totalCount: globalTotalCount,
+            activeCount: globalActiveCount,
+        });
     } catch (error) {
         next(error);
     }

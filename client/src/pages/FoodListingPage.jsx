@@ -35,13 +35,13 @@ const CATEGORIES = [
 const COMMON_UNITS = ['boxes', 'servings', 'packets', 'kg', 'platters'];
 
 const PHOTO_PRESETS = [
-    { label: '🍲 Warm Meal', url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=720&auto=format&fit=crop&q=80' },
-    { label: '🍛 Biryani / Rice', url: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=720&auto=format&fit=crop&q=80' },
-    { label: '🥖 Artisan Bakery', url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=720&auto=format&fit=crop&q=80' },
-    { label: '🍎 Fresh Fruits', url: 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=720&auto=format&fit=crop&q=80' },
-    { label: '🥗 Vegetables', url: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=720&auto=format&fit=crop&q=80' },
-    { label: '🥛 Dairy & Sweets', url: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=720&auto=format&fit=crop&q=80' },
-    { label: '🧃 Beverages', url: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=720&auto=format&fit=crop&q=80' },
+    { label: '🍲 Warm Meal', url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=480&h=320&auto=format&fit=crop&q=70&fm=webp' },
+    { label: '🍛 Biryani / Rice', url: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=480&h=320&auto=format&fit=crop&q=70&fm=webp' },
+    { label: '🥖 Artisan Bakery', url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=480&h=320&auto=format&fit=crop&q=70&fm=webp' },
+    { label: '🍎 Fresh Fruits', url: 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=480&h=320&auto=format&fit=crop&q=70&fm=webp' },
+    { label: '🥗 Vegetables', url: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=480&h=320&auto=format&fit=crop&q=70&fm=webp' },
+    { label: '🥛 Dairy & Sweets', url: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=480&h=320&auto=format&fit=crop&q=70&fm=webp' },
+    { label: '🧃 Beverages', url: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=480&h=320&auto=format&fit=crop&q=70&fm=webp' },
 ];
 
 export default function FoodListingPage() {
@@ -102,8 +102,8 @@ export default function FoodListingPage() {
             const rawDataUrl = event.target.result;
             const img = new Image();
             img.onload = () => {
-                // High-performance canvas downsampling and compression
-                const maxDim = 1200;
+                // High-performance canvas downsampling and compact compression
+                const maxDim = 800;
                 let { width, height } = img;
                 if (width > maxDim || height > maxDim) {
                     if (width > height) {
@@ -123,8 +123,14 @@ export default function FoodListingPage() {
                 ctx.imageSmoothingQuality = 'high';
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // Compress as JPEG with 0.80 quality (fast load & lightweight)
-                const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.80);
+                // Compact compression: WebP where available, with JPEG fallback
+                let optimizedDataUrl = '';
+                try {
+                    const webpUrl = canvas.toDataURL('image/webp', 0.72);
+                    optimizedDataUrl = webpUrl.startsWith('data:image/webp') ? webpUrl : canvas.toDataURL('image/jpeg', 0.72);
+                } catch {
+                    optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.72);
+                }
 
                 const base64Length = optimizedDataUrl.length - (optimizedDataUrl.indexOf(',') + 1);
                 const compressedBytes = (base64Length * 3) / 4;
@@ -468,7 +474,7 @@ export default function FoodListingPage() {
                                         </div>
                                     ) : form.photoUrl?.startsWith('data:') ? (
                                         <div className="dropzone-file-preview">
-                                            <img src={form.photoUrl} alt="Upload preview" className="dropzone-thumb" />
+                                            <img src={form.photoUrl} alt="Upload preview" className="dropzone-thumb" loading="lazy" decoding="async" />
                                             <div className="dropzone-file-meta">
                                                 <span className="dropzone-file-name">{uploadedFileName || 'Uploaded Photo'}</span>
                                                 <span className="dropzone-file-size">
@@ -528,7 +534,7 @@ export default function FoodListingPage() {
                         {/* Active Image Indicator Card (if a photo is active) */}
                         {form.photoUrl && (
                             <div className="active-photo-card">
-                                <img src={form.photoUrl} alt="Current food preview" className="active-photo-thumb" />
+                                <img src={form.photoUrl} alt="Current food preview" className="active-photo-thumb" loading="lazy" decoding="async" />
                                 <div className="active-photo-details">
                                     <span className="active-photo-title">
                                         {form.photoUrl.startsWith('data:')
@@ -625,6 +631,8 @@ export default function FoodListingPage() {
                                     src={form.photoUrl}
                                     alt={form.foodName || 'Surplus food preview'}
                                     className="preview-img"
+                                    loading="lazy"
+                                    decoding="async"
                                     onError={(e) => {
                                         e.target.style.display = 'none';
                                         if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';

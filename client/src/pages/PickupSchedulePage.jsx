@@ -587,6 +587,8 @@ export default function PickupSchedulePage() {
                     src={listing.photoUrl}
                     alt={listing.foodName || 'Surplus food'}
                     className="preview-img"
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => {
                       e.target.style.display = 'none';
                       if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
