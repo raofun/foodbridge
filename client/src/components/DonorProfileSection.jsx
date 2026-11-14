@@ -106,6 +106,8 @@ export default function DonorProfileSection({
             src={avatarUrl}
             alt={orgName}
             className="donor-avatar-img"
+            loading="lazy"
+            decoding="async"
             onError={(e) => {
               e.target.style.display = 'none';
               if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';

@@ -63,7 +63,7 @@ export default function MyListingsPage() {
             <article className="listing-card" key={item._id}>
               <div className="listing-photo">
                 {item.photoUrl ? (
-                  <img src={item.photoUrl} alt={item.foodName} />
+                  <img src={item.photoUrl} alt={item.foodName} loading="lazy" decoding="async" />
                 ) : (
                   <span>✳</span>
                 )}

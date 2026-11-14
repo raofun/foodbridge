@@ -439,6 +439,8 @@ export default function FoodInformationPage() {
                 src={listingData.photoUrl}
                 alt={listingData.foodName}
                 className="passport-img"
+                loading="lazy"
+                decoding="async"
                 onError={(e) => {
                   e.target.style.display = 'none';
                   if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
@@ -686,7 +688,7 @@ export default function FoodInformationPage() {
             <div className="form-card-section food-summary-card">
               <div className="summary-card-inner">
                 {listing.photoUrl ? (
-                  <img src={listing.photoUrl} alt={listing.foodName} className="summary-thumb" />
+                  <img src={listing.photoUrl} alt={listing.foodName} className="summary-thumb" loading="lazy" decoding="async" />
                 ) : (
                   <div className="summary-thumb" style={{ display: 'grid', placeItems: 'center', background: 'rgba(255,255,255,0.06)' }}>
                     <UtensilsCrossed size={24} style={{ color: '#94a3b8' }} />

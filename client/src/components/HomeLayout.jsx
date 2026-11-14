@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { NavLink, Outlet, useLocation, Link } from 'react-router-dom';
 import {
     UtensilsCrossed,
@@ -23,8 +23,15 @@ export default function HomeLayout() {
     const [feedListings, setFeedListings] = useState([]);
     const [feedLoading, setFeedLoading] = useState(true);
     const [feedError, setFeedError] = useState('');
+    const [currentTime, setCurrentTime] = useState(() => new Date());
 
-    
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 10000);
+        return () => clearInterval(timer);
+    }, []);
+
     const reloadFeed = useCallback(async (signal) => {
         setFeedLoading(true);
         setFeedError('');
@@ -41,12 +48,21 @@ export default function HomeLayout() {
         }
     }, []);
 
-    
     useEffect(() => {
         const controller = new AbortController();
         reloadFeed(controller.signal);
         return () => controller.abort();
     }, [location.pathname, reloadFeed]);
+
+    const activeMealsCount = useMemo(() => {
+        return feedListings.filter(item => {
+            const deadline = item.pickupDeadline || item.pickupClosesAt;
+            const isDeadlinePassed = Boolean(deadline && new Date(deadline) <= currentTime);
+            return item.status === 'available' && !isDeadlinePassed;
+        }).length;
+    }, [feedListings, currentTime]);
+
+    const totalMealsCount = feedListings.length;
 
     
     useEffect(() => {
@@ -215,12 +231,12 @@ export default function HomeLayout() {
                             </div>
                             <div className="pulse-stats-grid">
                                 <div className="pulse-stat">
-                                    <span className="stat-number">{feedListings.length}</span>
+                                    <span className="stat-number">{totalMealsCount}</span>
                                     <span className="stat-label">Total Meals</span>
                                 </div>
                                 <div className="pulse-stat">
-                                    <span className="stat-number">100%</span>
-                                    <span className="stat-label">Free Rescue</span>
+                                    <span className="stat-number">{activeMealsCount}</span>
+                                    <span className="stat-label">Active Meals</span>
                                 </div>
                             </div>
                         </div>
@@ -265,7 +281,7 @@ export default function HomeLayout() {
                 </aside>
 
                 <main className="dashboard-main">
-                    <Outlet context={{ feedListings, feedLoading, feedError, reloadFeed }} />
+                    <Outlet context={{ feedListings, feedLoading, feedError, reloadFeed, totalMealsCount, activeMealsCount }} />
                 </main>
             </div>
 

@@ -21,7 +21,6 @@ export async function getFoodInformation(req, res, next) {
       return res.status(403).json({ message: 'Access denied. Only the listing creator can access draft food information.' });
     }
 
-    // Calculate status closed or not 
     const deadline = listing.pickupDeadline || listing.pickupClosesAt;
     const isDeadlinePassed = Boolean(deadline && new Date(deadline) <= new Date());
     const effectiveStatus = (listing.status === 'closed' || isDeadlinePassed) ? 'closed' : listing.status;
@@ -39,7 +38,6 @@ export async function getFoodInformation(req, res, next) {
   }
 }
 
-// module 2 will be used in create listing to update food information and edit listing to update info
 export async function saveFoodInformation(req, res, next) {
   try {
     if (req.user?.role === 'receiver') {
