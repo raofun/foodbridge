@@ -30,7 +30,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { apiRequest } from '../services/api.js';
 import './MyListingsPage.css';
 
-export function optimizeImageUrl(url, width = 600, quality = 80) {
+function optimizeImageUrl(url, width = 600, quality = 80) {
   if (!url || typeof url !== 'string') return '';
   const trimmed = url.trim();
   if (!trimmed) return '';
@@ -139,16 +139,27 @@ const ListingCard = memo(function ListingCard({
           </span>
         )}
 
-        <span className="card-portion-pill">
-          <UtensilsCrossed size={11} />
-          <span>
-            {item.claimedQuantity > 0
-              ? item.claimedQuantity >= item.quantity
-                ? `Fully Claimed (${item.quantity} ${item.portionUnit})`
-                : `${item.claimedQuantity}/${item.quantity} ${item.portionUnit} reserved`
-              : `${item.quantity} ${item.portionUnit}`}
-          </span>
-        </span>
+        {(() => {
+          const totalQty = Number(item.quantity) || 1;
+          const claimedQty = Number(item.claimedQuantity) || 0;
+          const remainingQty = item.remainingQuantity !== undefined
+            ? Number(item.remainingQuantity)
+            : Math.max(0, totalQty - claimedQty);
+          const isFull = claimedQty >= totalQty;
+
+          return (
+            <span className={`card-portion-pill ${isFull ? 'claimed' : claimedQty > 0 ? 'partial' : ''}`}>
+              <UtensilsCrossed size={11} />
+              <span>
+                {isFull
+                  ? `Fully Claimed (0 of ${totalQty} left)`
+                  : claimedQty > 0
+                  ? `${remainingQty} of ${totalQty} ${item.portionUnit} left (${claimedQty} reserved)`
+                  : `${totalQty} ${item.portionUnit} available`}
+              </span>
+            </span>
+          );
+        })()}
       </div>
 
       {/* Card Body */}
@@ -295,7 +306,7 @@ function toSafeISO(val) {
   return isNaN(d.getTime()) ? null : d.toISOString();
 }
 
-export function formatPickupSchedule(opensAt, closesAt, deadlineValue, status, currentTime = new Date()) {
+function formatPickupSchedule(opensAt, closesAt, deadlineValue, status, currentTime = new Date()) {
   const deadline = deadlineValue || closesAt ? new Date(deadlineValue || closesAt) : null;
   const isClosed = status === 'closed';
 
@@ -504,6 +515,30 @@ export default function MyListingsPage() {
   useEffect(() => {
     loadListings();
   }, [loadListings]);
+
+  // Real-time synchronization when any reservation changes
+  useEffect(() => {
+    const handleReservationUpdate = (e) => {
+      if (!e.detail?.listingId) return;
+      const { listingId, remainingQuantity, claimedQuantity, status } = e.detail;
+      setListings((prev) =>
+        prev.map((item) => {
+          if (String(item._id) === String(listingId)) {
+            return {
+              ...item,
+              ...(remainingQuantity !== undefined ? { remainingQuantity } : {}),
+              ...(claimedQuantity !== undefined ? { claimedQuantity } : {}),
+              ...(status ? { status } : {}),
+            };
+          }
+          return item;
+        })
+      );
+    };
+
+    window.addEventListener('foodbridge:reservation-updated', handleReservationUpdate);
+    return () => window.removeEventListener('foodbridge:reservation-updated', handleReservationUpdate);
+  }, []);
 
   // Check if an item is actively available
   const isItemActive = useCallback((item) => {

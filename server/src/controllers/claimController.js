@@ -116,9 +116,17 @@ export async function createClaim(req, res, next) {
     const populatedClaim = await Claim.findById(claim._id)
       .populate({
         path: 'listing',
-        select: 'foodName photoUrl pickupLocation pickupOpensAt pickupClosesAt pickupDeadline status donor category',
+        select: 'foodName photoUrl pickupLocation pickupOpensAt pickupClosesAt pickupDeadline status donor category quantity claimedQuantity portionUnit foodCondition storageDetails',
         populate: { path: 'donor', select: 'name email role' },
-      });
+      })
+      .lean();
+
+    if (populatedClaim?.listing) {
+      const total = Number(populatedClaim.listing.quantity) || 0;
+      const claimedQty = Number(populatedClaim.listing.claimedQuantity) || 0;
+      populatedClaim.listing.claimedQuantity = claimedQty;
+      populatedClaim.listing.remainingQuantity = Math.max(0, total - claimedQty);
+    }
 
     return res.status(201).json({
       message: 'Food portion reserved successfully!',
@@ -152,12 +160,22 @@ export async function getMyClaims(req, res, next) {
       .sort({ createdAt: -1 })
       .populate({
         path: 'listing',
-        select: 'foodName description photoUrl pickupLocation pickupOpensAt pickupClosesAt pickupDeadline category storageDetails foodCondition status quantity claimedQuantity donor',
+        select: 'foodName description photoUrl pickupLocation pickupOpensAt pickupClosesAt pickupDeadline category storageDetails foodCondition status quantity claimedQuantity portionUnit donor',
         populate: { path: 'donor', select: 'name email role' },
       })
       .lean();
 
-    return res.json({ claims });
+    const enrichedClaims = claims.map((c) => {
+      if (c.listing) {
+        const total = Number(c.listing.quantity) || 0;
+        const claimed = Number(c.listing.claimedQuantity) || 0;
+        c.listing.claimedQuantity = claimed;
+        c.listing.remainingQuantity = Math.max(0, total - claimed);
+      }
+      return c;
+    });
+
+    return res.json({ claims: enrichedClaims });
   } catch (error) {
     next(error);
   }
@@ -197,9 +215,184 @@ export async function cancelClaim(req, res, next) {
       await listing.save();
     }
 
+    const populatedClaim = await Claim.findById(claim._id)
+      .populate({
+        path: 'listing',
+        select: 'foodName description photoUrl pickupLocation pickupOpensAt pickupClosesAt pickupDeadline category storageDetails foodCondition status quantity claimedQuantity portionUnit donor',
+        populate: { path: 'donor', select: 'name email role' },
+      })
+      .lean();
+
+    if (populatedClaim?.listing) {
+      const total = Number(populatedClaim.listing.quantity) || 0;
+      const claimed = Number(populatedClaim.listing.claimedQuantity) || 0;
+      populatedClaim.listing.claimedQuantity = claimed;
+      populatedClaim.listing.remainingQuantity = Math.max(0, total - claimed);
+    }
+
     return res.json({
       message: 'Reservation cancelled successfully. Food portion returned to community.',
-      claim,
+      claim: populatedClaim || claim,
+      listingSummary: listing ? {
+        _id: listing._id,
+        status: listing.status,
+        quantity: listing.quantity,
+        claimedQuantity: listing.claimedQuantity,
+        remainingQuantity: Math.max(0, listing.quantity - (listing.claimedQuantity || 0)),
+      } : null,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * FR09: Update an active food portion reservation (claim).
+ * Allows modifying portions (recalculates listing stock & status), contact info, pickup time, notes.
+ */
+export async function updateClaim(req, res, next) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Please sign in to update reservation.' });
+    }
+
+    const userRole = String(req.user.role || '').trim().toLowerCase();
+    if (!ALLOWED_RECEIVER_ROLES.includes(userRole)) {
+      return res.status(403).json({
+        message: 'Only receiver and volunteer accounts can manage reservations.',
+      });
+    }
+
+    const { id: claimId } = req.params;
+    const claim = await Claim.findOne({ _id: claimId, receiver: req.user.id });
+    if (!claim) {
+      return res.status(404).json({ message: 'Reservation not found or access denied.' });
+    }
+
+    if (claim.status === 'cancelled') {
+      return res.status(400).json({ message: 'Cannot edit a cancelled reservation.' });
+    }
+
+    const listing = await Listing.findById(claim.listing);
+    if (!listing) {
+      return res.status(404).json({ message: 'Associated food listing not found.' });
+    }
+
+    // Handle portion quantity change if provided
+    if (req.body.quantity !== undefined) {
+      const newQty = Number(req.body.quantity);
+      if (!Number.isInteger(newQty) || newQty < 1) {
+        return res.status(400).json({ message: 'Portion quantity must be a whole number of at least 1.' });
+      }
+
+      const delta = newQty - claim.quantity;
+      if (delta > 0) {
+        // Checking if listing has enough remaining portions to satisfy increase
+        const currentClaimed = listing.claimedQuantity || 0;
+        const availableInListing = Math.max(0, listing.quantity - currentClaimed);
+        if (delta > availableInListing) {
+          return res.status(400).json({
+            message: availableInListing === 0
+              ? 'No additional portions are available for this food item.'
+              : `Only ${availableInListing} additional ${listing.portionUnit || 'portions'} available. Cannot increase reservation by ${delta}.`,
+          });
+        }
+      }
+
+      if (delta !== 0) {
+        listing.claimedQuantity = Math.max(0, (listing.claimedQuantity || 0) + delta);
+        if (listing.claimedQuantity >= listing.quantity) {
+          listing.status = 'claimed';
+        } else if (listing.claimedQuantity < listing.quantity) {
+          const deadline = listing.pickupDeadline || listing.pickupClosesAt;
+          const isExpired = deadline && new Date(deadline).getTime() <= Date.now();
+          if (!isExpired) {
+            listing.status = 'available';
+          }
+        }
+        await listing.save();
+        claim.quantity = newQty;
+      }
+    }
+
+    // Handle recipient name
+    if (req.body.recipientName !== undefined) {
+      claim.recipientName = req.body.recipientName.trim();
+    }
+
+    // Handle contact phone
+    if (req.body.contactPhone !== undefined) {
+      claim.contactPhone = req.body.contactPhone.trim();
+    }
+
+    // Handle estimated pickup date/time
+    if (req.body.estimatedPickupAt !== undefined) {
+      if (!req.body.estimatedPickupAt) {
+        claim.estimatedPickupAt = null;
+      } else {
+        const parsed = new Date(req.body.estimatedPickupAt);
+        if (!Number.isFinite(parsed.getTime())) {
+          return res.status(400).json({ message: 'Estimated pickup time is invalid.' });
+        }
+        if (parsed.getTime() < Date.now() - 5 * 60 * 1000) {
+          return res.status(400).json({ message: 'Estimated pickup time cannot be in the past.' });
+        }
+        if (listing.pickupClosesAt && parsed.getTime() > new Date(listing.pickupClosesAt).getTime()) {
+          return res.status(400).json({ message: 'Estimated pickup time cannot be after the pickup window closes.' });
+        }
+        claim.estimatedPickupAt = parsed;
+      }
+    }
+
+    // Handle people fed
+    if (req.body.peopleFed !== undefined) {
+      claim.peopleFed = req.body.peopleFed !== '' && req.body.peopleFed !== null
+        ? Math.max(1, Number(req.body.peopleFed))
+        : null;
+    }
+
+    // Handle hasContainers
+    if (req.body.hasContainers !== undefined) {
+      claim.hasContainers = Boolean(req.body.hasContainers);
+    }
+
+    // Handle reservationPurpose
+    if (req.body.reservationPurpose !== undefined && req.body.reservationPurpose) {
+      claim.reservationPurpose = req.body.reservationPurpose;
+    }
+
+    // Handle receiverNotes
+    if (req.body.receiverNotes !== undefined) {
+      claim.receiverNotes = req.body.receiverNotes.trim();
+    }
+
+    await claim.save();
+
+    const populatedClaim = await Claim.findById(claim._id)
+      .populate({
+        path: 'listing',
+        select: 'foodName description photoUrl pickupLocation pickupOpensAt pickupClosesAt pickupDeadline category storageDetails foodCondition status quantity claimedQuantity portionUnit donor',
+        populate: { path: 'donor', select: 'name email role' },
+      })
+      .lean();
+
+    if (populatedClaim?.listing) {
+      const total = Number(populatedClaim.listing.quantity) || 0;
+      const claimedQty = Number(populatedClaim.listing.claimedQuantity) || 0;
+      populatedClaim.listing.claimedQuantity = claimedQty;
+      populatedClaim.listing.remainingQuantity = Math.max(0, total - claimedQty);
+    }
+
+    return res.json({
+      message: 'Reservation updated successfully!',
+      claim: populatedClaim,
+      listingSummary: {
+        _id: listing._id,
+        status: listing.status,
+        quantity: listing.quantity,
+        claimedQuantity: listing.claimedQuantity,
+        remainingQuantity: Math.max(0, listing.quantity - (listing.claimedQuantity || 0)),
+      },
     });
   } catch (error) {
     next(error);

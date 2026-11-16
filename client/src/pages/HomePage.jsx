@@ -17,7 +17,7 @@ import FeedSearchFilter from '../components/FeedSearchFilter.jsx';
 import ClaimModal from '../components/ClaimModal.jsx';
 import './HomePage.css';
 
-export function formatPickupDeadline(deadlineValue, status, currentTime = new Date()) {
+function formatPickupDeadline(deadlineValue, status, currentTime = new Date()) {
     const now = currentTime instanceof Date ? currentTime : new Date();
     const deadline = deadlineValue ? new Date(deadlineValue) : null;
 
@@ -52,9 +52,31 @@ export function formatPickupDeadline(deadlineValue, status, currentTime = new Da
     };
 }
 
-// Keep backward-compatible formatPickupWindow alias
-export const formatPickupWindow = (opensAt, closesAt, status, currentTime) =>
+// Backward-compatible formatPickupWindow alias
+const formatPickupWindow = (opensAt, closesAt, status, currentTime) =>
     formatPickupDeadline(closesAt, status, currentTime);
+
+function optimizeImageUrl(url, width = 480, quality = 70) {
+    if (!url || typeof url !== 'string') return '';
+    const trimmed = url.trim();
+    if (!trimmed) return '';
+    if (trimmed.includes('images.unsplash.com')) {
+        try {
+            const parsed = new URL(trimmed);
+            parsed.searchParams.set('auto', 'format');
+            parsed.searchParams.set('fit', 'crop');
+            parsed.searchParams.set('w', String(width));
+            parsed.searchParams.set('q', String(quality));
+            return parsed.toString();
+        } catch {
+            return trimmed;
+        }
+    }
+    if (trimmed.includes('res.cloudinary.com') && trimmed.includes('/upload/')) {
+        return trimmed.replace('/upload/', `/upload/f_auto,q_auto,w_${width}/`);
+    }
+    return trimmed;
+}
 
 export default function HomePage() {
     const { session } = useAuth();
@@ -91,6 +113,31 @@ export default function HomePage() {
         }, 300);
         return () => clearTimeout(timer);
     }, [filters.search]);
+
+    // Real-time synchronization when any reservation is created, updated, or cancelled
+    useEffect(() => {
+        const handleReservationUpdate = (e) => {
+            if (!e.detail?.listingId) return;
+            const { listingId, remainingQuantity, claimedQuantity, status } = e.detail;
+            setCustomListings((prev) =>
+                prev.map((item) => {
+                    if (String(item._id) === String(listingId)) {
+                        return {
+                            ...item,
+                            ...(remainingQuantity !== undefined ? { remainingQuantity } : {}),
+                            ...(claimedQuantity !== undefined ? { claimedQuantity } : {}),
+                            ...(status ? { status } : {}),
+                        };
+                    }
+                    return item;
+                })
+            );
+            reloadFeed?.();
+        };
+
+        window.addEventListener('foodbridge:reservation-updated', handleReservationUpdate);
+        return () => window.removeEventListener('foodbridge:reservation-updated', handleReservationUpdate);
+    }, [reloadFeed]);
 
     const isDefaultFilter = useMemo(() => {
         return !debouncedSearch?.trim() &&
@@ -339,7 +386,7 @@ export default function HomePage() {
                             <article className={`food-listing-card ${timeInfo.isExpired ? 'expired-card' : ''}`} key={item._id}>
                                 <div className="card-photo-box">
                                     <img
-                                        src={item.photoUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=480&h=320&auto=format&fit=crop&q=70&fm=webp'}
+                                        src={optimizeImageUrl(item.photoUrl) || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=480&h=320&auto=format&fit=crop&q=70&fm=webp'}
                                         alt={item.foodName}
                                         className="card-photo-img"
                                         loading="lazy"
@@ -361,20 +408,42 @@ export default function HomePage() {
                                     </div>
 
                                     <div className="card-summary-row">
-                                        <span className={`pill-portion ${item.status === 'claimed' || (item.remainingQuantity !== undefined && item.remainingQuantity <= 0) ? 'claimed-portion' : ''}`}>
-                                            <UtensilsCrossed size={12} />
-                                            {item.status === 'claimed' || (item.remainingQuantity !== undefined && item.remainingQuantity <= 0) ? (
-                                                <span>Fully Claimed</span>
-                                            ) : item.claimedQuantity > 0 ? (
-                                                <span>{item.remainingQuantity} of {item.quantity} {item.portionUnit} left</span>
-                                            ) : (
-                                                <span>{item.quantity} {item.portionUnit}</span>
-                                            )}
-                                        </span>
-                                        <span className="card-neighborhood">
-                                            <MapPin size={12} />
-                                            <span>{item.pickupLocation || item.donor?.location || 'Community Location'}</span>
-                                        </span>
+                                        {(() => {
+                                            const totalQty = Number(item.quantity) || 1;
+                                            const claimedQty = Number(item.claimedQuantity) || 0;
+                                            const remainingQty = item.remainingQuantity !== undefined
+                                                ? Number(item.remainingQuantity)
+                                                : Math.max(0, totalQty - claimedQty);
+                                            const isClaimedOut = item.status === 'claimed' || remainingQty <= 0;
+                                            const pctClaimed = Math.min(100, Math.round((claimedQty / Math.max(1, totalQty)) * 100));
+
+                                            return (
+                                                <>
+                                                    <span className={`pill-portion ${isClaimedOut ? 'claimed-portion' : claimedQty > 0 ? 'partial-portion' : ''}`}>
+                                                        <UtensilsCrossed size={12} />
+                                                        {isClaimedOut ? (
+                                                            <span>Fully Claimed (0 left)</span>
+                                                        ) : claimedQty > 0 ? (
+                                                            <span><strong>{remainingQty}</strong> of {totalQty} {item.portionUnit} left</span>
+                                                        ) : (
+                                                            <span>{totalQty} {item.portionUnit} available</span>
+                                                        )}
+                                                    </span>
+                                                    <span className="card-neighborhood">
+                                                        <MapPin size={12} />
+                                                        <span>{item.pickupLocation || item.donor?.location || 'Community Location'}</span>
+                                                    </span>
+                                                    {item.status !== 'closed' && (
+                                                        <div className="card-stock-track" title={`${claimedQty} of ${totalQty} ${item.portionUnit} reserved (${remainingQty} left)`}>
+                                                            <div
+                                                                className={`card-stock-fill ${isClaimedOut ? 'full' : claimedQty > 0 ? 'partial' : 'empty'}`}
+                                                                style={{ width: `${pctClaimed}%` }}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
                                     </div>
 
                                     <div className="card-buttons-footer">

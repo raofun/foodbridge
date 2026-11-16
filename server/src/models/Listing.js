@@ -23,5 +23,8 @@ const listingSchema = new mongoose.Schema({
 
 listingSchema.index({ donor: 1, createdAt: -1 });
 listingSchema.index({ donor: 1, status: 1 });
+listingSchema.index({ status: 1, createdAt: -1 });
+listingSchema.index({ status: 1, pickupDeadline: 1 });
+listingSchema.index({ status: 1, category: 1, createdAt: -1 });
 
 export default mongoose.model('Listing', listingSchema);

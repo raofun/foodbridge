@@ -50,9 +50,12 @@ export default function HomeLayout() {
     }, []);
 
     useEffect(() => {
-        const controller = new AbortController();
-        reloadFeed(controller.signal);
-        return () => controller.abort();
+        // Only fetch feed when actually viewing the Community Feed ('/')
+        if (location.pathname === '/') {
+            const controller = new AbortController();
+            reloadFeed(controller.signal);
+            return () => controller.abort();
+        }
     }, [location.pathname, reloadFeed]);
 
     const activeMealsCount = useMemo(() => {

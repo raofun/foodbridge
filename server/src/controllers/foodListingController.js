@@ -53,14 +53,26 @@ function validateListingBasics(body) {
 export async function getPublicFeed(req, res, next) {
     try {
         const filter = await buildFeedFilter(req.query);
-
-        const listings = await Listing.find(filter)
-            .select('foodName description photoUrl quantity portionUnit category foodCondition pickupLocation pickupDeadline pickupClosesAt status createdAt donor')
-            .sort({ createdAt: -1 })
-            .populate('donor', 'name role')
-            .lean();
-
         const now = new Date();
+
+        // Fetch feed listings and global totals concurrently in parallel using indexed countDocuments
+        const [listings, totalCount, activeCount] = await Promise.all([
+            Listing.find(filter)
+                .select('foodName description photoUrl quantity portionUnit category foodCondition pickupLocation pickupDeadline pickupClosesAt status createdAt donor claimedQuantity')
+                .sort({ createdAt: -1 })
+                .limit(60)
+                .populate('donor', 'name role')
+                .lean(),
+            Listing.countDocuments({ status: { $in: ['available', 'closed'] } }),
+            Listing.countDocuments({
+                status: 'available',
+                $or: [
+                    { pickupDeadline: { $gt: now } },
+                    { pickupClosesAt: { $gt: now } },
+                    { pickupDeadline: null, pickupClosesAt: null },
+                ],
+            }),
+        ]);
 
         const publicListings = listings.map(item => {
             const deadline = item.pickupDeadline || item.pickupClosesAt;
@@ -103,21 +115,10 @@ export async function getPublicFeed(req, res, next) {
             return aDeadline - bDeadline;
         });
 
-        const allPublished = await Listing.find({ status: { $in: ['available', 'closed'] } })
-            .select('status pickupDeadline pickupClosesAt')
-            .lean();
-
-        const globalTotalCount = allPublished.length;
-        const globalActiveCount = allPublished.filter(item => {
-            const deadline = item.pickupDeadline || item.pickupClosesAt;
-            const isDeadlinePassed = Boolean(deadline && new Date(deadline) <= now);
-            return item.status === 'available' && !isDeadlinePassed;
-        }).length;
-
         res.json({
             listings: publicListings,
-            totalCount: globalTotalCount,
-            activeCount: globalActiveCount,
+            totalCount,
+            activeCount,
         });
     } catch (error) {
         next(error);
@@ -345,9 +346,26 @@ export async function myListings(req, res, next) {
         }
         const listings = await Listing.find({ donor: req.user.id })
             .sort({ createdAt: -1 })
-            .populate('donor', 'name role email')
             .lean();
-        res.json({ listings });
+
+        const donorInfo = {
+            _id: req.user._id,
+            name: req.user.name || 'Donor',
+            role: req.user.role || 'donor',
+            email: req.user.email || '',
+        };
+
+        const enrichedListings = listings.map(item => {
+            const claimedQuantity = item.claimedQuantity || 0;
+            return {
+                ...item,
+                donor: donorInfo,
+                claimedQuantity,
+                remainingQuantity: Math.max(0, item.quantity - claimedQuantity),
+            };
+        });
+
+        res.json({ listings: enrichedListings });
     } catch (error) {
         next(error);
     }
@@ -364,7 +382,12 @@ export async function getListing(req, res, next) {
             return res.status(403).json({ message: 'Access denied. Only the listing creator can access draft details.' });
         }
 
-        res.json({ listing });
+        const listingObj = listing.toObject ? listing.toObject() : { ...listing };
+        const claimedQuantity = listingObj.claimedQuantity || 0;
+        listingObj.claimedQuantity = claimedQuantity;
+        listingObj.remainingQuantity = Math.max(0, listingObj.quantity - claimedQuantity);
+
+        res.json({ listing: listingObj });
     } catch (error) {
         next(error);
     }
