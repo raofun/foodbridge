@@ -446,7 +446,22 @@ export async function getClaimPickupPass(req, res, next) {
     }
 
     // Build QR payload for external cameras: link to verification route with prefilled code
-    const clientOrigin = process.env.CLIENT_ORIGIN?.split(',')[0] || 'http://localhost:5173';
+    let requestOrigin = req.headers.origin;
+    if (!requestOrigin && req.headers.referer) {
+      try {
+        requestOrigin = new URL(req.headers.referer).origin;
+      } catch (_) {}
+    }
+
+    const configuredOrigin = process.env.CLIENT_ORIGIN?.split(',')[0]?.trim();
+    const isPlaceholder = configuredOrigin?.includes('your-foodbridge-name') ||
+                          configuredOrigin?.includes('example.com') ||
+                          configuredOrigin?.includes('your-domain');
+
+    const clientOrigin = (!isPlaceholder && configuredOrigin)
+      ? configuredOrigin
+      : (requestOrigin || 'http://localhost:5173');
+
     const qrUrl = decryptedCode
       ? `${clientOrigin}/listings/${claim.listing?._id}/verify?code=${decryptedCode}`
       : null;
