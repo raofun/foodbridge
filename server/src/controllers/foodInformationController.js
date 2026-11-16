@@ -21,7 +21,6 @@ export async function getFoodInformation(req, res, next) {
       return res.status(403).json({ message: 'Access denied. Only the listing creator can access draft food information.' });
     }
 
-    // Calculate status closed or not 
     const deadline = listing.pickupDeadline || listing.pickupClosesAt;
     const isDeadlinePassed = Boolean(deadline && new Date(deadline) <= new Date());
     const effectiveStatus = (listing.status === 'closed' || isDeadlinePassed) ? 'closed' : listing.status;

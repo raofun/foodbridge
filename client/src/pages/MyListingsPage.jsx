@@ -817,7 +817,6 @@ export default function MyListingsPage() {
             <span>Create New Listing</span>
           </Link>
         </div>
-
         {/* 4 Live Metrics Cards */}
         <div className="donor-metrics-grid">
           <div className="donor-metric-card" onClick={() => setActiveTab('all')} style={{ cursor: 'pointer' }}>
