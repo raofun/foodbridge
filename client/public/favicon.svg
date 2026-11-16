@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <!-- FoodBridge Brand Gradient: Vibrant Orange to Deep Vermilion -->
+    <linearGradient id="fbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff6827"/>
+      <stop offset="100%" stop-color="#d63b00"/>
+    </linearGradient>
+
+    <!-- Glass Top Reflection -->
+    <linearGradient id="glassShine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.32"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Squircle Base Canvas (Matches in-app Brand Badge) -->
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#fbGradient)"/>
+
+  <!-- Subtle Upper Glass Reflection -->
+  <rect x="3" y="3" width="58" height="28" rx="15" fill="url(#glassShine)"/>
+
+  <!-- Inner Border Highlight -->
+  <rect x="2.5" y="2.5" width="59" height="59" rx="15.5" fill="none" stroke="rgba(255, 255, 255, 0.28)" stroke-width="1.2"/>
+
+  <!-- Centered White UtensilsCrossed (FoodBridge Logo Motif) -->
+  <g transform="translate(10.4, 10.4) scale(1.8)" stroke="#ffffff" stroke-width="2.35" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8"/>
+    <path d="M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7"/>
+    <path d="m2.1 21.8 6.4-6.3"/>
+    <path d="m19 5-7 7"/>
+  </g>
+</svg>
