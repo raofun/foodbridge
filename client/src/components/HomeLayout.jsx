@@ -11,7 +11,8 @@ import {
     Menu,
     X,
     HeartHandshake,
-    ShoppingBag
+    ShoppingBag,
+    ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { apiRequest } from '../services/api.js';
@@ -222,6 +223,17 @@ export default function HomeLayout() {
                                         <List size={15} />
                                     </div>
                                     <span className="nav-title">My Listings</span>
+                                </NavLink>
+                                <NavLink
+                                    to="/verify-pickup"
+                                    className={({ isActive }) =>
+                                        `nav-item${isActive ? ' selected' : ''}`
+                                    }
+                                >
+                                    <div className="nav-icon-box">
+                                        <ShieldCheck size={15} />
+                                    </div>
+                                    <span className="nav-title">Verify Pickup</span>
                                 </NavLink>
                             </>
                         )}

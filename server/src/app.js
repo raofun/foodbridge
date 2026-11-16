@@ -7,6 +7,7 @@ import errorHandler from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.js';
 import listingRoutes from './routes/listings.js';
 import claimRoutes from './routes/claims.js';
+import pickupVerificationRoutes from './routes/pickupVerification.js';
 
 const app = express();
 
@@ -60,6 +61,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/listings', listingRoutes);
 app.use('/api/claims', claimRoutes);
+app.use('/api', pickupVerificationRoutes);
 
 // Centralized Error Handling
 app.use(errorHandler);

@@ -1,6 +1,12 @@
 import Listing from '../models/Listing.js';
 import Claim from '../models/Claim.js';
 import User from '../models/User.js';
+import {
+  generateVerificationCode,
+  encryptVerificationCode,
+  decryptVerificationCode,
+  hashVerificationCode,
+} from '../utils/verificationCode.js';
 
 const ALLOWED_RECEIVER_ROLES = ['receiver', 'volunteer'];
 
@@ -97,6 +103,11 @@ export async function createClaim(req, res, next) {
       ? Math.max(1, Number(req.body.peopleFed))
       : null;
 
+    // Generate FR10 Pickup Verification Code & HMAC hash
+    const rawCode = generateVerificationCode();
+    const encryptedCode = encryptVerificationCode(rawCode);
+    const verificationHash = hashVerificationCode(rawCode);
+
     // Create the Claim record
     const claim = await Claim.create({
       listing: listing._id,
@@ -104,6 +115,8 @@ export async function createClaim(req, res, next) {
       quantity: numQty,
       portionUnit: listing.portionUnit,
       status: 'reserved',
+      verificationCode: encryptedCode,
+      verificationHash: verificationHash,
       recipientName: req.body.recipientName?.trim() || req.user?.name || 'Community Member',
       contactPhone: req.body.contactPhone?.trim() || '',
       peopleFed: parsedPeopleFed,
@@ -120,6 +133,12 @@ export async function createClaim(req, res, next) {
         populate: { path: 'donor', select: 'name email role' },
       })
       .lean();
+
+    if (populatedClaim) {
+      // Expose clean raw code to claiming receiver on creation receipt
+      populatedClaim.verificationCode = rawCode;
+      delete populatedClaim.verificationHash;
+    }
 
     if (populatedClaim?.listing) {
       const total = Number(populatedClaim.listing.quantity) || 0;
@@ -172,6 +191,10 @@ export async function getMyClaims(req, res, next) {
         c.listing.claimedQuantity = claimed;
         c.listing.remainingQuantity = Math.max(0, total - claimed);
       }
+      if (c.verificationCode) {
+        c.verificationCode = decryptVerificationCode(c.verificationCode);
+      }
+      delete c.verificationHash;
       return c;
     });
 
@@ -426,6 +449,48 @@ export async function getListingClaims(req, res, next) {
         portionUnit: listing.portionUnit,
         status: listing.status,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Permanently delete a reservation record from the database.
+ * Allows receivers/volunteers to remove cancelled or unwanted reservation records.
+ */
+export async function deleteClaim(req, res, next) {
+  try {
+    const { id: claimId } = req.params;
+    const currentUserId = req.user.id || req.user._id;
+
+    const claim = await Claim.findOne({ _id: claimId, receiver: currentUserId });
+    if (!claim) {
+      return res.status(404).json({ message: 'Reservation not found or access denied.' });
+    }
+
+    // If an active reservation is being deleted, return portions back to the listing
+    if (claim.status === 'reserved') {
+      const listing = await Listing.findById(claim.listing);
+      if (listing) {
+        listing.claimedQuantity = Math.max(0, (listing.claimedQuantity || 0) - claim.quantity);
+        if (listing.status === 'claimed' && listing.claimedQuantity < listing.quantity) {
+          const deadline = listing.pickupDeadline || listing.pickupClosesAt;
+          const isExpired = deadline && new Date(deadline).getTime() <= Date.now();
+          if (!isExpired) {
+            listing.status = 'available';
+          }
+        }
+        await listing.save();
+      }
+    }
+
+    await Claim.findByIdAndDelete(claim._id);
+
+    return res.json({
+      success: true,
+      message: 'Cancelled reservation record permanently deleted from database.',
+      deletedClaimId: claimId,
     });
   } catch (error) {
     next(error);

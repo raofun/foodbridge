@@ -19,7 +19,8 @@ import {
   CheckSquare,
   Square,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  QrCode
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { apiRequest } from '../services/api.js';
@@ -450,16 +451,30 @@ export default function ClaimModal({ listing, onClose, onClaimSuccess }) {
                   </span>
                 </div>
               )}
+              {confirmedClaim.verificationCode && (
+                <div className="fb-cmodal-receipt-row" style={{ background: '#f0fdf4', padding: '8px 12px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                  <span className="fb-cmodal-rlabel" style={{ color: '#166534', fontWeight: 700 }}>Pickup Code:</span>
+                  <span className="fb-cmodal-rval bold" style={{ fontFamily: 'monospace', fontSize: '18px', letterSpacing: '2px', color: '#15803d' }}>
+                    {confirmedClaim.verificationCode}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="fb-cmodal-success-actions">
-              <Link to="/claims/mine" className="fb-cmodal-btn-primary" onClick={onClose}>
+              <Link
+                to={`/claims/${confirmedClaim._id}/pass`}
+                className="fb-cmodal-btn-primary"
+                onClick={onClose}
+                style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#ffffff', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)' }}
+              >
+                <QrCode size={15} />
+                <span>Open Digital Pickup Pass</span>
+              </Link>
+              <Link to="/claims/mine" className="fb-cmodal-btn-secondary" onClick={onClose}>
                 <HeartHandshake size={15} />
                 <span>View My Reservations</span>
               </Link>
-              <button type="button" className="fb-cmodal-btn-secondary" onClick={onClose}>
-                Done
-              </button>
             </div>
           </div>
         ) : !session ? (

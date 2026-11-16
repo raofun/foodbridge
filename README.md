@@ -73,8 +73,8 @@ To ensure the integrity of community surplus distribution, FoodBridge enforces s
 | **FR06** | **Pickup Scheduling** | ✅ Implemented | Single authoritative collection schedule: opening and closing time window, physical address, Dhaka neighborhood presets, and publishing listing to `available`. |
 | **FR07** | **Search & Filtering** | ✅ Implemented | **Filter by area, food category, availability & pickup time.** Real-time multi-facet filtering across active community surplus donations. |
 | **FR08** | **My listings- Edit, Delete** | ✅ Implemented | **Allows users to view, edit and delete their published food listings.** Dedicated donor dashboard to manage active listings, continue draft setups, or remove listings. |
-| **FR09** | **Food claiming & Reservation** | ⏳ Planned Roadmap | **Allows users to claim available food donations and reserve them for pickup.** Dynamic portion reduction, fair-share caps, and real-time stock status transitions. |
-| **FR10** | **Pickup Verification & Confirmation** | ⏳ Planned Roadmap | **Use a reservation specific code to confirm collection.** Secure alphanumeric token/QR verification exchange upon physical collection to finalize handover. |
+| **FR09** | **Food claiming & Reservation** | ✅ Implemented | **Allows users to claim available food donations and reserve them for pickup.** Dynamic portion reduction, fair-share caps, and real-time stock status transitions. |
+| **FR10** | **Pickup Verification & Confirmation** | ✅ Implemented | **Use a reservation specific code to confirm collection.** Secure HMAC-SHA256 encrypted 6-character token & scannable QR verification exchange to finalize physical handover. |
 
 ---
 
@@ -173,8 +173,10 @@ foodbridge-app/
 | **FR06** | `/listings/:id/pickup` | `PickupSchedulePage.jsx` | Donor only | Configure pickup address, quick Dhaka area presets, collection opening/closing times, and publish listing. |
 | **FR07** | `/` (Search Toolbar) | `HomeLayout.jsx` & `HomePage.jsx` | Public | **Search & Filtering**: Filter by area, food category, availability & pickup time in real time. |
 | **FR08** | `/listings/mine` | `MyListingsPage.jsx` | Donor only | **My listings- Edit, Delete**: Allows users to view, edit, and delete their published food listings. |
-| **FR09** | `/listings/:id/claim` | Claim Modal (Planned) | Receiver only | **Food claiming & Reservation**: Allows users to claim available food donations and reserve them for pickup. |
-| **FR10** | `/listings/:id/verify` | Verification Modal (Planned) | Donor / Receiver | **Pickup Verification & Confirmation**: Use a reservation specific code to confirm collection. |
+| **FR09** | `/claims/mine` | `MyClaimsPage.jsx` | Receiver only | **Food claiming & Reservation**: Track active, cancelled, and past reservations with portion allocation. |
+| **FR10** | `/claims/:id/pass` | `PickupPassPage.jsx` | Receiver / Volunteer | **Digital Pickup Pass**: Large 6-character verification code, high-contrast scannable QR, and live status. |
+| **FR10** | `/listings/:id/verify` | `PickupVerificationPage.jsx` | Donor / Volunteer | **Pickup Verification Portal**: Segmented code input, camera QR scan auto-fill, and live claims inspection. |
+| **FR10** | `/verify-pickup` | `PickupVerificationPage.jsx` | Donor / Volunteer | **Universal Code Verification**: 1-step direct verification station across all donor listings. |
 
 ---
 
@@ -558,33 +560,60 @@ Final stage of the donor listing creation pipeline to establish collection hours
 | **FR08** | `GET` | `/api/listings/mine` | `MyListingsPage.jsx` | `Bearer <token>` | **My listings**: Retrieve all food donations owned by authenticated donor. |
 | **FR08** | `DELETE` | `/api/listings/:id` | `MyListingsPage.jsx` | `Bearer <token>` | **Delete listing**: Permanently delete donor's food listing. |
 | **FR08** | `PATCH` | `/api/listings/:id` | `MyListingsPage.jsx` | `Bearer <token>` | **Edit listing**: Update listing parameters, quantity, or description. |
+| **FR09** | `POST` | `/api/listings/:id/claim` | `ClaimModal.jsx` | `Bearer <token>` | **Food claiming**: Reserve portions, calculate dynamic stock, and issue code. |
+| **FR09** | `GET` | `/api/claims/mine` | `MyClaimsPage.jsx` | `Bearer <token>` | **My reservations**: View active, completed, and cancelled reservations. |
+| **FR09** | `PUT` | `/api/claims/:id` | `EditClaimModal.jsx` | `Bearer <token>` | **Update reservation**: Modify claimed portions, ETA, and contact info. |
+| **FR09** | `POST` | `/api/claims/:id/cancel` | `MyClaimsPage.jsx` | `Bearer <token>` | **Cancel reservation**: Return claimed portions back to community feed. |
+| **FR10** | `GET` | `/api/claims/:id/pickup-pass` | `PickupPassPage.jsx` | `Bearer <token>` | **Digital Pickup Pass**: Encrypted pass payload, 6-char code, and QR URL. |
+| **FR10** | `POST` | `/api/listings/:id/verify-pickup` | `PickupVerificationPage.jsx` | `Bearer <token>` | **Verify pickup**: Validate 6-char code via HMAC-SHA256 and complete handover. |
+| **FR10** | `POST` | `/api/verification/verify-code` | `PickupVerificationPage.jsx` | `Bearer <token>` | **Direct verify**: Universal 1-step code verification across all donor listings. |
+| **FR10** | `GET` | `/api/listings/:id/verification` | `PickupVerificationPage.jsx` | `Bearer <token>` | **Verification station**: View pending and completed handovers for listing. |
 
 ---
 
-## Future Functional Requirements Roadmap (FR09 & FR10)
+### FR10: Pickup Verification & Confirmation (`PickupVerificationPage.jsx` & `PickupPassPage.jsx`)
+Two-party physical handover authentication system backed by HMAC-SHA256 cryptographic hashing and zero-residue secret wiping.
 
-The FoodBridge architecture is designed to integrate the following planned modules seamlessly in upcoming release cycles:
+- **`GET /api/claims/:id/pickup-pass`**
+  - **Invoked by**: `client/src/pages/PickupPassPage.jsx` (on mount and live sync)
+  - **Auth Required**: `Bearer <token>` (Receiver who owns the claim, or donor/volunteer)
+  - **Response Payload**: Decrypted 6-character code, QR code URL, listing location, pickup countdown, and live handover status (`reserved` vs `completed`).
 
-### FR09: Food claiming & Reservation
+- **`POST /api/listings/:id/verify-pickup`**
+  - **Invoked by**: `client/src/pages/PickupVerificationPage.jsx` (Confirm Handover button or camera QR auto-scan)
+  - **Auth Required**: `Bearer <token>` (Owner / Donor or Volunteer)
+  - **Request Body**: `{ "verificationCode": "K7P9M2" }`
+  - **Response Payload**: Handover audit receipt, updated portion counts, and listing completion state.
+
+- **`POST /api/verification/verify-code`**
+  - **Invoked by**: `client/src/pages/PickupVerificationPage.jsx` (Universal Direct Verification)
+  - **Auth Required**: `Bearer <token>` (Donor or Volunteer)
+  - **Request Body**: `{ "verificationCode": "K7P9M2" }`
+  - **Response Payload**: Resolved listing match, confirmed handover details, and audit record.
+
+- **`GET /api/listings/:id/verification`**
+  - **Invoked by**: `client/src/pages/PickupVerificationPage.jsx` (Station dashboard tabs)
+  - **Auth Required**: `Bearer <token>` (Owner / Donor or Volunteer)
+  - **Response Payload**: Active pending reservations vs completed handover history for that listing.
+
+---
+
+## Implemented Core Modules (FR09 & FR10)
+
+### FR09: Food claiming & Reservation (Implemented)
 > **Allows users to claim available food donations and reserve them for pickup.**
 
-- **Portion Allocation**: Receivers and verified community partners can reserve specific portions of active surplus listings according to their immediate need.
-- **Fair-Share Reservation Limits**: Enforces daily per-user portion caps to prevent single-entity hoarding and guarantee equitable distribution.
+- **Portion Allocation**: Receivers and verified community partners reserve portions of active surplus listings.
+- **Fair-Share Reservation Limits**: Enforces daily per-user portion caps to prevent single-entity hoarding.
 - **Dynamic Stock Depletion**: Real-time decrement of remaining available portions. When all portions are claimed, the listing automatically transitions from `available` to `claimed`.
-- **Planned API Endpoints**:
-  - `POST /api/listings/:id/claim`: Submits claim request with requested portion count and estimated pickup time.
-  - `GET /api/listings/claims/mine`: Receiver dashboard to track pending, approved, and past reservations.
 
-### FR10: Pickup Verification & Confirmation
+### FR10: Pickup Verification & Confirmation (Implemented)
 > **Use a reservation specific code to confirm collection.**
 
-- **Secure Handover Verification Code**: Upon placing a reservation, the system generates a unique, single-use 6-character alphanumeric verification code (and scannable QR code) issued exclusively to the claiming receiver.
-- **Physical Handover Authentication**: At collection, the receiver presents their code to the donor. The donor inputs or scans the code to confirm the physical exchange of food.
-- **Automatic Completion & Audit Trail**: Verifying the code instantly transitions the listing to `completed`, records the handover timestamp, and closes the transaction.
-- **Auto-Expiry Cancellation**: Unclaimed or uncollected listings past their `pickupClosesAt` window are automatically transitioned to `closed` to maintain feed hygiene.
-- **Planned API Endpoints**:
-  - `POST /api/listings/:id/verify-pickup`: Validates receiver's reservation code and marks transaction complete.
-  - `POST /api/listings/:id/cancel-claim`: Allows receiver to release reserved portions if unable to attend.
+- **Secure Handover Verification Code**: Unique, single-use 6-character alphanumeric verification code and scannable QR ticket issued exclusively to the claiming receiver. Protected with HMAC-SHA256 hashing.
+- **Physical Handover Authentication**: At collection, the receiver presents their code or QR to the donor. The donor inputs or scans the code to confirm the physical exchange of food.
+- **Automatic Completion & Audit Trail**: Verifying the code instantly transitions the claim and listing to `completed`, records the handover timestamp, and closes the transaction.
+- **Zero-Residue Secret Wiping**: Upon successful physical handover, the verification code and hash are wiped from the database.
 
 ### Extended Platform Roadmap (Post-Launch)
 - **Incident Reporting & Food Quality Flags**: Mechanism for recipients to report packaging defects, unhygienic conditions, or inaccurate descriptions.

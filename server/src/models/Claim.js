@@ -25,9 +25,28 @@ const claimSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['reserved', 'cancelled'],
+    enum: ['reserved', 'completed', 'cancelled'],
     default: 'reserved',
     index: true,
+  },
+  verificationCode: {
+    type: String,
+    default: null,
+    trim: true,
+  },
+  verificationHash: {
+    type: String,
+    default: null,
+    index: true,
+  },
+  collectedAt: {
+    type: Date,
+    default: null,
+  },
+  verifiedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
   },
   estimatedPickupAt: {
     type: Date,

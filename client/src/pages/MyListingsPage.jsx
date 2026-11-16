@@ -204,6 +204,18 @@ const ListingCard = memo(function ListingCard({
 
       {/* Interactive Action Footer */}
       <div className="card-actions-footer">
+        {/* Verify Pickup Button for published listings */}
+        {!isDraft && (
+          <Link
+            to={`/listings/${item._id}/verify`}
+            className="btn-card-action verify"
+            title="Verify pickup code & view active reservations"
+          >
+            <ShieldCheck size={13} />
+            <span>Verify Pickup</span>
+          </Link>
+        )}
+
         {/* View Details Button */}
         <Link
           to={`/listings/${item._id}/information`}
@@ -847,10 +859,16 @@ export default function MyListingsPage() {
               Monitor active community surplus donations, update pickup schedules, extend deadlines, or mark collections as closed.
             </p>
           </div>
-          <Link to="/listings/new" className="btn-hero-create">
-            <Plus size={16} strokeWidth={2.5} />
-            <span>Create New Listing</span>
-          </Link>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <Link to="/verify-pickup" className="btn-hero-verify">
+              <ShieldCheck size={16} strokeWidth={2.5} />
+              <span>Verify Pickup Code</span>
+            </Link>
+            <Link to="/listings/new" className="btn-hero-create">
+              <Plus size={16} strokeWidth={2.5} />
+              <span>Create New Listing</span>
+            </Link>
+          </div>
         </div>
         {/* 4 Live Metrics Cards */}
         <div className="donor-metrics-grid">
