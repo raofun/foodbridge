@@ -20,4 +20,7 @@ const listingSchema = new mongoose.Schema({
   status: { type: String, enum: ['draft', 'available', 'closed'], default: 'draft' },
 }, { timestamps: true });
 
+listingSchema.index({ donor: 1, createdAt: -1 });
+listingSchema.index({ donor: 1, status: 1 });
+
 export default mongoose.model('Listing', listingSchema);

@@ -39,7 +39,11 @@ export async function getFoodInformation(req, res, next) {
   }
 }
 
+<<<<<<< Updated upstream
 // module 2 will be used in create listing to update food information and edit listing to update info
+=======
+//module 2 giving food info in listing
+>>>>>>> Stashed changes
 export async function saveFoodInformation(req, res, next) {
   try {
     if (req.user?.role === 'receiver') {
@@ -47,7 +51,6 @@ export async function saveFoodInformation(req, res, next) {
     }
     const listing = await Listing.findOne({ _id: req.params.id, donor: req.user.id });
     if (!listing) return res.status(404).json({ message: 'Listing not found.' });
-    if (listing.status !== 'draft') return res.status(409).json({ message: 'Only draft listings can be updated in this step.' });
 
     const { preparedAt, storageDetails, foodCondition, useByAt, safetyNotes } = req.body;
     if (!preparedAt || !storageDetails?.trim() || !foodCondition) {

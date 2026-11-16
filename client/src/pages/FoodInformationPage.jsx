@@ -382,9 +382,6 @@ export default function FoodInformationPage() {
     );
   }
 
-  // ==========================================
-  // RECEIVER & PUBLIC VIEW: DETAILED PASSPORT
-  // ==========================================
   if (listing && listing.status !== 'draft') {
     const listingData = listing;
     const categoryObj = CATEGORIES.find((c) => c.id === listingData.category) || CATEGORIES[0];
@@ -648,9 +645,6 @@ export default function FoodInformationPage() {
     );
   }
 
-  // ==========================================
-  // DONOR DRAFT MODE: FOOD SAFETY INPUT FORM
-  // ==========================================
   const categoryObj = CATEGORIES.find((c) => c.id === listing?.category) || CATEGORIES[0];
 
   return (

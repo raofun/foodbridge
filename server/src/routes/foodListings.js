@@ -5,7 +5,8 @@ import {
   deleteListing,
   getListing,
   myListings,
-  updateListing
+  updateListing,
+  closeListing
 } from '../controllers/foodListingController.js';
 
 const router = Router();
@@ -13,6 +14,7 @@ const router = Router();
 router.post('/', requireAuth, createListing);
 router.get('/mine', requireAuth, myListings);
 router.get('/:id', optionalAuth, getListing);
+router.patch('/:id/close', requireAuth, closeListing);
 router.patch('/:id', requireAuth, updateListing);
 router.put('/:id', requireAuth, updateListing);
 router.delete('/:id', requireAuth, deleteListing);

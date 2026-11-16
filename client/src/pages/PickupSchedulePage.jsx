@@ -98,10 +98,12 @@ export default function PickupSchedulePage() {
       .then((data) => {
         const dbListing = data?.listing;
         if (!dbListing) throw new Error('Listing could not be loaded.');
-        if (dbListing.status !== 'draft') {
+
+        if (!data.isOwner && session?.user?.id && String(dbListing.donor?._id || dbListing.donor) !== String(session.user.id)) {
           navigate('/listings/mine', { replace: true });
           return;
         }
+
         if (!dbListing.preparedAt || !dbListing.storageDetails || !dbListing.foodCondition) {
           navigate(`/listings/${listingId}/information`, { replace: true });
           return;
@@ -110,24 +112,33 @@ export default function PickupSchedulePage() {
         setListing(dbListing);
 
         const now = new Date();
-        const defaultOpens = toLocalDateTime(dbListing.pickupOpensAt || now);
-        const defaultCloses = toLocalDateTime(
-          dbListing.pickupClosesAt ||
-          dbListing.pickupDeadline ||
-          new Date(now.getTime() + 4 * 3600000)
-        );
+        const existingOpens = dbListing.pickupOpensAt ? new Date(dbListing.pickupOpensAt) : null;
+        const existingCloses = (dbListing.pickupClosesAt || dbListing.pickupDeadline)
+          ? new Date(dbListing.pickupClosesAt || dbListing.pickupDeadline)
+          : null;
+
+        const isPastDeadline = existingCloses && existingCloses.getTime() <= now.getTime();
+        const isClosed = dbListing.status === 'closed' || isPastDeadline;
+
+        const defaultOpensDate = (!isClosed && existingOpens && existingOpens.getTime() > now.getTime())
+          ? existingOpens
+          : now;
+
+        const defaultClosesDate = (!isClosed && existingCloses && existingCloses.getTime() > defaultOpensDate.getTime())
+          ? existingCloses
+          : new Date(defaultOpensDate.getTime() + 4 * 3600000);
 
         setForm({
           pickupLocation: dbListing.pickupLocation || '',
-          pickupOpensAt: defaultOpens,
-          pickupClosesAt: defaultCloses,
+          pickupOpensAt: toLocalDateTime(defaultOpensDate),
+          pickupClosesAt: toLocalDateTime(defaultClosesDate),
           accessNotes: '',
         });
         setListingLoaded(true);
       })
       .catch((e) => setError(e.message || 'Failed to load listing for scheduling.'))
       .finally(() => setLoading(false));
-  }, [listingId, navigate, session?.token]);
+  }, [listingId, navigate, session?.token, session?.user?.id]);
 
   const handleAreaClick = (area) => {
     if (!form.pickupLocation.trim()) {
@@ -264,7 +275,10 @@ export default function PickupSchedulePage() {
           pickupClosesAt: new Date(form.pickupClosesAt).toISOString(),
         }),
       });
-      navigate('/listings/mine', { state: { notice: '🎉 Your surplus food listing is now published and available to the community.' } });
+      const successNotice = listing?.status === 'closed'
+        ? `🎉 "${listing.foodName || 'Donation'}" has been re-opened and is now active on the community feed!`
+        : '🎉 Your surplus food listing is now published and available to the community.';
+      navigate('/listings/mine', { state: { notice: successNotice } });
     } catch (e) {
       setError(e.message || 'Failed to save pickup schedule and publish listing.');
     } finally {
@@ -273,23 +287,28 @@ export default function PickupSchedulePage() {
   }
 
   const categoryMeta = listing ? (CATEGORY_META[listing.category] || CATEGORY_META.meals) : CATEGORY_META.meals;
+  const isReopenMode = listing?.status === 'closed';
 
   return (
     <div className="pickup-schedule-view">
       <header className="pickup-schedule-header">
         <div className="pickup-schedule-nav-row">
-          <Link className="btn-back-link" to={`/listings/${listingId}/information`}>
+          <Link className="btn-back-link" to="/listings/mine">
             <ArrowLeft size={14} />
-            <span>Back to Food Information</span>
+            <span>Back to My Listings</span>
           </Link>
           <span className="pickup-step-badge">
             <span className="pickup-badge-dot" />
-            Step 03 · Final Publishing
+            {isReopenMode ? 'Step 03 · Reopen Pickup' : 'Step 03 · Final Publishing'}
           </span>
         </div>
-        <h1 className="pickup-schedule-title">Schedule Food Pickup</h1>
+        <h1 className="pickup-schedule-title">
+          {isReopenMode ? 'Re-open Food Pickup Window' : 'Schedule Food Pickup'}
+        </h1>
         <p className="pickup-schedule-subtitle">
-          Confirm the handover point and collection timeframe to publish your surplus listing to the community feed.
+          {isReopenMode
+            ? 'Set a new pickup timeframe and collection location to re-activate your surplus food listing for the community.'
+            : 'Confirm the handover point and collection timeframe to publish your surplus listing to the community feed.'}
         </p>
       </header>
 
@@ -557,12 +576,12 @@ export default function PickupSchedulePage() {
                 {busy ? (
                   <>
                     <Loader2 size={16} className="spinning" />
-                    <span>Publishing listing…</span>
+                    <span>{isReopenMode ? 'Re-opening listing…' : 'Publishing listing…'}</span>
                   </>
                 ) : (
                   <>
                     <Sparkles size={15} />
-                    <span>Publish Listing</span>
+                    <span>{isReopenMode ? 'Re-open & Activate Listing' : 'Publish Listing'}</span>
                     <ArrowRight size={15} />
                   </>
                 )}
