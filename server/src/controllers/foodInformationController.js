@@ -39,11 +39,7 @@ export async function getFoodInformation(req, res, next) {
   }
 }
 
-<<<<<<< Updated upstream
-// module 2 will be used in create listing to update food information and edit listing to update info
-=======
-//module 2 giving food info in listing
->>>>>>> Stashed changes
+// Module 2: Update food information for listing
 export async function saveFoodInformation(req, res, next) {
   try {
     if (req.user?.role === 'receiver') {
