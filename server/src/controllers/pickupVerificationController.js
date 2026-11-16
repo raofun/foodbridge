@@ -8,11 +8,7 @@ import {
   isValidCodeFormat,
 } from '../utils/verificationCode.js';
 
-/**
- * FR10: Verify pickup collection using the 6-character reservation code for a specific listing.
- * Endpoint: POST /api/listings/:id/verify-pickup
- * Auth: Donor (owner of listing) or Volunteer.
- */
+// Verify pickup collection for a specific listing using 6-character code
 export async function verifyPickupByListing(req, res, next) {
   try {
     if (!req.user) {
@@ -25,7 +21,6 @@ export async function verifyPickupByListing(req, res, next) {
       return res.status(404).json({ message: 'Food listing not found.' });
     }
 
-    // Role check: Only donor owner or volunteer can verify
     const currentUserId = String(req.user.id || req.user._id);
     const donorId = String(listing.donor?._id || listing.donor);
     const userRole = String(req.user.role || '').trim().toLowerCase();
@@ -45,10 +40,8 @@ export async function verifyPickupByListing(req, res, next) {
       });
     }
 
-    // Compute HMAC-SHA256 for O(1) indexed lookup without plaintext exposure
     const computedHash = hashVerificationCode(cleanCode);
 
-    // Find active reservation matching this listing and hash
     const claim = await Claim.findOne({
       listing: listing._id,
       verificationHash: computedHash,
@@ -75,7 +68,7 @@ export async function verifyPickupByListing(req, res, next) {
       });
     }
 
-    // Mark handover as completed and wipe code/hash (Zero-Residue Hygiene)
+    // Complete handover and wipe secret tokens
     claim.status = 'completed';
     claim.collectedAt = new Date();
     claim.verifiedBy = req.user.id || req.user._id;
@@ -160,11 +153,7 @@ export async function verifyPickupByListing(req, res, next) {
   }
 }
 
-/**
- * FR10: Get all donor listings that have active reservations waiting for collection.
- * Endpoint: GET /api/verification/active-listings
- * Auth: Donor or Volunteer.
- */
+// Fetch donor listings that have active reservations waiting for collection
 export async function getActivePickupListings(req, res, next) {
   try {
     if (!req.user) {
@@ -219,11 +208,7 @@ export async function getActivePickupListings(req, res, next) {
   }
 }
 
-/**
- * FR10: Direct Universal Code Verification across all listings owned by the donor.
- * Endpoint: POST /api/verification/verify-code
- * Auth: Donor or Volunteer.
- */
+// Universal direct verification across all donor listings
 export async function verifyPickupDirect(req, res, next) {
   try {
     if (!req.user) {
@@ -353,11 +338,7 @@ export async function verifyPickupDirect(req, res, next) {
   }
 }
 
-/**
- * FR10: Get verification station data for a listing (pending collections & completed history).
- * Endpoint: GET /api/listings/:id/verification
- * Auth: Donor owner or Volunteer.
- */
+// Verification station data for specific listing (pending vs completed)
 export async function getListingVerificationData(req, res, next) {
   try {
     if (!req.user) {
@@ -429,11 +410,7 @@ export async function getListingVerificationData(req, res, next) {
   }
 }
 
-/**
- * FR10: Get Receiver's Digital Pickup Pass & Live Handover State.
- * Endpoint: GET /api/claims/:id/pickup-pass
- * Auth: Receiver (owner of claim) or Donor/Volunteer.
- */
+// Digital pickup pass payload for authorized receiver
 export async function getClaimPickupPass(req, res, next) {
   try {
     if (!req.user) {

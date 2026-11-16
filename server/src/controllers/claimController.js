@@ -33,7 +33,7 @@ export async function createClaim(req, res, next) {
       return res.status(404).json({ message: 'Listing not found.' });
     }
 
-    // Volunteers and receivers CANNOT claim their own listings!
+    // Prevent donors from claiming their own listings
     const currentUserId = String(req.user.id || req.user._id);
     const donorId = String(listing.donor?._id || listing.donor);
     if (currentUserId && donorId && currentUserId === donorId) {
@@ -44,7 +44,6 @@ export async function createClaim(req, res, next) {
 
     const receiverId = req.user.id || req.user._id;
 
-    // Check listing status
     if (listing.status !== 'available') {
       return res.status(400).json({
         message: listing.status === 'claimed'
@@ -53,13 +52,11 @@ export async function createClaim(req, res, next) {
       });
     }
 
-    // Check pickup deadline
     const deadline = listing.pickupDeadline || listing.pickupClosesAt;
     if (deadline && new Date(deadline).getTime() <= Date.now()) {
       return res.status(400).json({ message: 'The pickup window for this listing has expired.' });
     }
 
-    // Validate requested quantity
     const numQty = Number(req.body.quantity);
     if (!Number.isInteger(numQty) || numQty < 1) {
       return res.status(400).json({ message: 'Requested quantity must be a whole number of at least 1.' });
@@ -75,7 +72,6 @@ export async function createClaim(req, res, next) {
       });
     }
 
-    // Optional estimated pickup time
     let estimatedDate = null;
     if (req.body.estimatedPickupAt) {
       const parsed = new Date(req.body.estimatedPickupAt);
@@ -91,24 +87,22 @@ export async function createClaim(req, res, next) {
       estimatedDate = parsed;
     }
 
-    // Update listing dynamic stock
+    // Update remaining stock and transition status if fully claimed
     listing.claimedQuantity = currentClaimed + numQty;
     if (listing.claimedQuantity >= listing.quantity) {
       listing.status = 'claimed';
     }
     await listing.save();
 
-    // Parse optional people fed
     const parsedPeopleFed = req.body.peopleFed !== undefined && req.body.peopleFed !== null && req.body.peopleFed !== ''
       ? Math.max(1, Number(req.body.peopleFed))
       : null;
 
-    // Generate FR10 Pickup Verification Code & HMAC hash
+    // Generate FR10 verification code, AES cipher, and HMAC hash
     const rawCode = generateVerificationCode();
     const encryptedCode = encryptVerificationCode(rawCode);
     const verificationHash = hashVerificationCode(rawCode);
 
-    // Create the Claim record
     const claim = await Claim.create({
       listing: listing._id,
       receiver: receiverId,
@@ -338,17 +332,14 @@ export async function updateClaim(req, res, next) {
       }
     }
 
-    // Handle recipient name
     if (req.body.recipientName !== undefined) {
       claim.recipientName = req.body.recipientName.trim();
     }
 
-    // Handle contact phone
     if (req.body.contactPhone !== undefined) {
       claim.contactPhone = req.body.contactPhone.trim();
     }
 
-    // Handle estimated pickup date/time
     if (req.body.estimatedPickupAt !== undefined) {
       if (!req.body.estimatedPickupAt) {
         claim.estimatedPickupAt = null;
@@ -367,24 +358,20 @@ export async function updateClaim(req, res, next) {
       }
     }
 
-    // Handle people fed
     if (req.body.peopleFed !== undefined) {
       claim.peopleFed = req.body.peopleFed !== '' && req.body.peopleFed !== null
         ? Math.max(1, Number(req.body.peopleFed))
         : null;
     }
 
-    // Handle hasContainers
     if (req.body.hasContainers !== undefined) {
       claim.hasContainers = Boolean(req.body.hasContainers);
     }
 
-    // Handle reservationPurpose
     if (req.body.reservationPurpose !== undefined && req.body.reservationPurpose) {
       claim.reservationPurpose = req.body.reservationPurpose;
     }
 
-    // Handle receiverNotes
     if (req.body.receiverNotes !== undefined) {
       claim.receiverNotes = req.body.receiverNotes.trim();
     }

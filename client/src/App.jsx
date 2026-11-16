@@ -14,6 +14,7 @@ const MyListingsPage = lazy(() => import('./pages/MyListingsPage.jsx'));
 const MyClaimsPage = lazy(() => import('./pages/MyClaimsPage.jsx'));
 const PickupPassPage = lazy(() => import('./pages/PickupPassPage.jsx'));
 const PickupVerificationPage = lazy(() => import('./pages/PickupVerificationPage.jsx'));
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage.jsx'));
 
 function LoadingFallback() {
   return (
@@ -43,6 +44,15 @@ function AuthRoute({ children }) {
   const { session, loading } = useAuth();
   if (loading) return <LoadingFallback />;
   return session ? <Navigate to="/" replace /> : children;
+}
+
+function AdminRoute({ children }) {
+  const { session, loading } = useAuth();
+  const location = useLocation();
+  if (loading) return <LoadingFallback />;
+  if (!session) return <Navigate to="/login" state={{ from: location }} replace />;
+  if (session.user?.role !== 'admin') return <Navigate to="/" replace />;
+  return children;
 }
 
 export default function App() {
@@ -155,6 +165,16 @@ export default function App() {
                 <PickupVerificationPage />
               </Suspense>
             </DonorRoute>
+          }
+        />
+        <Route
+          path="admin"
+          element={
+            <AdminRoute>
+              <Suspense fallback={<LoadingFallback />}>
+                <AdminDashboardPage />
+              </Suspense>
+            </AdminRoute>
           }
         />
       </Route>

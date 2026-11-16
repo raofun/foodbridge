@@ -9,7 +9,7 @@ function createSession(user) {
   const token = jwt.sign({ sub: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
   return {
     token,
-    user: { id: user.id, name: user.name, email: user.email, role: user.role || 'member' },
+    user: { id: user.id, name: user.name, email: user.email, role: user.role || 'member', status: user.status || 'active' },
   };
 }
 
@@ -42,6 +42,9 @@ export async function login(req, res, next) {
     if (!user?.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
       return res.status(401).json({ message: 'Email or password is incorrect.' });
     }
+    if (user.status === 'suspended') {
+      return res.status(403).json({ message: 'This account has been suspended by an administrator. Please contact support.' });
+    }
     res.json(createSession(user));
   } catch (error) { next(error); }
 }
@@ -72,12 +75,15 @@ export async function googleLogin(req, res, next) {
       user.googleId = profile.sub;
       await user.save();
     }
+    if (user.status === 'suspended') {
+      return res.status(403).json({ message: 'This account has been suspended by an administrator. Please contact support.' });
+    }
     res.json(createSession(user));
   } catch (error) { next(error); }
 }
 
 export function currentUser(req, res) {
-  res.json({ user: { id: req.user.id, name: req.user.name, email: req.user.email, role: req.user.role } });
+  res.json({ user: { id: req.user.id, name: req.user.name, email: req.user.email, role: req.user.role, status: req.user.status || 'active' } });
 }
 
 export async function resetPassword(req, res, next) {

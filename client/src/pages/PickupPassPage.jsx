@@ -78,7 +78,7 @@ export default function PickupPassPage() {
     fetchPassData();
   }, [fetchPassData]);
 
-  // Live "Two-Party Handshake": poll every 5 seconds while reserved to detect donor verification
+  // Live sync: poll every 5s while reserved to detect donor verification
   useEffect(() => {
     if (!data?.claim || data.claim.status !== 'reserved') return;
 
@@ -95,7 +95,6 @@ export default function PickupPassPage() {
     };
   }, [data?.claim?.status, fetchPassData]);
 
-  // Copy code handler
   const handleCopyCode = (code) => {
     if (!code) return;
     navigator.clipboard.writeText(code);
@@ -108,7 +107,6 @@ export default function PickupPassPage() {
   const listing = data?.listing;
   const qrUrl = data?.qrUrl;
 
-  // Formatted pickup window
   const pickupWindowFormatted = useMemo(() => {
     if (!listing) return 'Schedule confirmed with donor';
     const opens = listing.pickupOpensAt ? new Date(listing.pickupOpensAt) : null;
@@ -126,13 +124,11 @@ export default function PickupPassPage() {
     return 'Schedule confirmed with donor';
   }, [listing]);
 
-  // Google Maps navigation link
   const mapsUrl = useMemo(() => {
     if (!listing?.pickupLocation) return null;
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(listing.pickupLocation)}`;
   }, [listing?.pickupLocation]);
 
-  // Helper for name initials
   const getInitials = (name) => {
     if (!name || typeof name !== 'string') return 'FB';
     const parts = name.trim().split(/\s+/);

@@ -596,10 +596,10 @@ export default function MyClaimsPage() {
 
                     {/* Verification Code Quick Preview */}
                     {isReserved && claim.verificationCode && (
-                      <div className="meta-row" style={{ background: '#f0fdf4', padding: '6px 10px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-                        <ShieldCheck size={14} style={{ color: '#16a34a' }} />
-                        <span className="meta-text" style={{ color: '#166534', fontWeight: 600 }}>
-                          Pickup Code: <strong style={{ fontFamily: 'monospace', letterSpacing: '1px', fontSize: '13px' }}>{claim.verificationCode}</strong>
+                      <div className="meta-row" style={{ background: 'rgba(16, 185, 129, 0.12)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.28)' }}>
+                        <ShieldCheck size={14} style={{ color: '#34d399' }} />
+                        <span className="meta-text" style={{ color: '#34d399', fontWeight: 600 }}>
+                          Pickup Code: <strong style={{ fontFamily: 'monospace', letterSpacing: '1px', fontSize: '13px', color: '#6ee7b7' }}>{claim.verificationCode}</strong>
                         </span>
                       </div>
                     )}

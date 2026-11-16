@@ -452,9 +452,9 @@ export default function ClaimModal({ listing, onClose, onClaimSuccess }) {
                 </div>
               )}
               {confirmedClaim.verificationCode && (
-                <div className="fb-cmodal-receipt-row" style={{ background: '#f0fdf4', padding: '8px 12px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-                  <span className="fb-cmodal-rlabel" style={{ color: '#166534', fontWeight: 700 }}>Pickup Code:</span>
-                  <span className="fb-cmodal-rval bold" style={{ fontFamily: 'monospace', fontSize: '18px', letterSpacing: '2px', color: '#15803d' }}>
+                <div className="fb-cmodal-receipt-row" style={{ background: 'rgba(16, 185, 129, 0.12)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.28)' }}>
+                  <span className="fb-cmodal-rlabel" style={{ color: '#34d399', fontWeight: 700 }}>Pickup Code:</span>
+                  <span className="fb-cmodal-rval bold" style={{ fontFamily: 'monospace', fontSize: '18px', letterSpacing: '2px', color: '#6ee7b7' }}>
                     {confirmedClaim.verificationCode}
                   </span>
                 </div>

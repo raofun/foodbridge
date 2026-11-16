@@ -32,7 +32,6 @@ export default function PickupVerificationPage() {
   const activeListingId = listingId || id;
   const urlCode = searchParams.get('code') || '';
 
-  // 6-Character Code State (represented as array of 6 characters for segmented input)
   const [codeArray, setCodeArray] = useState(() => {
     const clean = urlCode.trim().replace(/[\s-]+/g, '').toUpperCase().slice(0, 6);
     const arr = clean.split('');
@@ -48,10 +47,8 @@ export default function PickupVerificationPage() {
   const [error, setError] = useState('');
   const [successResult, setSuccessResult] = useState(null);
 
-  // References for 6 segmented input fields
   const inputRefs = useRef([]);
 
-  // Fetch listing verification station data OR active pickup listings for universal portal
   const fetchStationData = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -61,7 +58,6 @@ export default function PickupVerificationPage() {
         const res = await apiRequest(`/listings/${activeListingId}/verification`);
         setListingData(res);
       } else {
-        // Universal direct verify station: fetch donor's listings with pending collections
         const res = await apiRequest('/verification/active-listings');
         setActivePickupsList(res.listings || []);
       }
@@ -76,10 +72,8 @@ export default function PickupVerificationPage() {
     fetchStationData();
   }, [fetchStationData]);
 
-  // Combined code string
   const fullCode = useMemo(() => codeArray.join('').trim().toUpperCase(), [codeArray]);
 
-  // Handle segmented inputs
   const handleInputChange = (index, val) => {
     setError('');
     const char = val.slice(-1).toUpperCase();
@@ -88,7 +82,6 @@ export default function PickupVerificationPage() {
     newArr[index] = char;
     setCodeArray(newArr);
 
-    // Auto-advance to next input if character entered
     if (char && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }

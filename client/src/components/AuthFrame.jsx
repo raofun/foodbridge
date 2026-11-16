@@ -1,5 +1,5 @@
 import { UtensilsCrossed, ShieldCheck, HeartHandshake, Sparkles } from 'lucide-react';
-import '../styles/auth.css';
+import './AuthFrame.css';
 
 export default function AuthFrame({ children }) {
   return (

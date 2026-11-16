@@ -8,6 +8,8 @@ import authRoutes from './routes/auth.js';
 import listingRoutes from './routes/listings.js';
 import claimRoutes from './routes/claims.js';
 import pickupVerificationRoutes from './routes/pickupVerification.js';
+import adminRoutes from './routes/admin.js';
+import { ensureDefaultAdmin } from './utils/bootstrapAdmin.js';
 
 const app = express();
 
@@ -62,6 +64,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/listings', listingRoutes);
 app.use('/api/claims', claimRoutes);
 app.use('/api', pickupVerificationRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Centralized Error Handling
 app.use(errorHandler);
@@ -74,6 +77,7 @@ async function start() {
   }
 
   await connectDB();
+  await ensureDefaultAdmin();
   app.listen(port, '0.0.0.0', () => console.log(`FoodBridge API running on port ${port} (0.0.0.0:${port})`));
 }
 
