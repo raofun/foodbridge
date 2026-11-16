@@ -211,12 +211,18 @@
     flex-wrap: wrap;
 }
 
-.toolbar-tabs-group {
+.my-listings-toolbar .toolbar-tabs-group,
+.toolbar-tabs-group.my-listings-tabs-group {
     display: flex;
     align-items: center;
     gap: 6px;
     overflow-x: auto;
+    padding: 0;
     padding-bottom: 2px;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
 }
 
 .tab-pill-btn {

@@ -26,10 +26,15 @@ export async function getFoodInformation(req, res, next) {
     const isDeadlinePassed = Boolean(deadline && new Date(deadline) <= new Date());
     const effectiveStatus = (listing.status === 'closed' || isDeadlinePassed) ? 'closed' : listing.status;
 
+    const claimedQuantity = listing.claimedQuantity || 0;
+    const remainingQuantity = Math.max(0, listing.quantity - claimedQuantity);
+
     res.json({
       listing: {
         ...listing,
         status: effectiveStatus,
+        claimedQuantity,
+        remainingQuantity,
       },
       isOwner,
       isDraft: listing.status === 'draft',

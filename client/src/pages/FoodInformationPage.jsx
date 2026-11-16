@@ -14,10 +14,12 @@ import {
   Copy,
   Sparkles,
   Calendar,
-  Info
+  Info,
+  HeartHandshake
 } from 'lucide-react';
 import ListingSteps from '../components/ListingSteps.jsx';
 import DonorProfileSection from '../components/DonorProfileSection.jsx';
+import ClaimModal from '../components/ClaimModal.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { apiRequest } from '../services/api.js';
 import './FoodInformationPage.css';
@@ -199,6 +201,11 @@ export default function FoodInformationPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
+  const [showClaimModal, setShowClaimModal] = useState(false);
+
+  const donorId = String(listing?.donor?._id || listing?.donor || '');
+  const currentUserId = String(session?.user?.id || session?.user?._id || '');
+  const computedIsOwner = Boolean(currentUserId && donorId && currentUserId === donorId) || isOwner;
 
   const [form, setForm] = useState({
     preparedAt: toLocalDateTime(new Date()),
@@ -384,6 +391,14 @@ export default function FoodInformationPage() {
 
   if (listing && listing.status !== 'draft') {
     const listingData = listing;
+    const totalQuantity = Number(listingData.quantity) || 1;
+    const claimedQuantity = Number(listingData.claimedQuantity) || 0;
+    const remainingQuantity = listingData.remainingQuantity !== undefined
+      ? Number(listingData.remainingQuantity)
+      : Math.max(0, totalQuantity - claimedQuantity);
+    const isFullyClaimed = listingData.status === 'claimed' || remainingQuantity <= 0;
+    const portionUnit = listingData.portionUnit || 'portions';
+
     const categoryObj = CATEGORIES.find((c) => c.id === listingData.category) || CATEGORIES[0];
     const conditionObj = FOOD_CONDITIONS.find((c) => c.id === listingData.foodCondition) || FOOD_CONDITIONS[0];
     const { tags: parsedTags, notes: cleanNotes } = parseSafetyNotesAndTags(listingData.safetyNotes);
@@ -465,9 +480,15 @@ export default function FoodInformationPage() {
             <div className="passport-header-section">
               <div className="passport-title-row">
                 <h1 className="passport-title">{listingData.foodName || 'Community Surplus Food'}</h1>
-                <span className="passport-portion-badge">
+                <span className={`passport-portion-badge ${isFullyClaimed ? 'claimed' : claimedQuantity > 0 ? 'partial' : ''}`}>
                   <UtensilsCrossed size={14} />
-                  <span>{listingData.quantity || 1} {listingData.portionUnit || 'portions'}</span>
+                  {isFullyClaimed ? (
+                    <span>Fully Claimed</span>
+                  ) : claimedQuantity > 0 ? (
+                    <span>{remainingQuantity} of {totalQuantity} {portionUnit} left</span>
+                  ) : (
+                    <span>{totalQuantity} {portionUnit} available</span>
+                  )}
                 </span>
               </div>
 
@@ -566,7 +587,15 @@ export default function FoodInformationPage() {
 
                 <div className="safety-stat-cell">
                   <span className="cell-label">Portions Available</span>
-                  <strong className="cell-val">{listingData.quantity} {listingData.portionUnit}</strong>
+                  <strong className="cell-val">
+                    {isFullyClaimed ? (
+                      <span style={{ color: '#ef4444' }}>0 of {totalQuantity} (Fully Claimed)</span>
+                    ) : claimedQuantity > 0 ? (
+                      <span style={{ color: '#10b981' }}>{remainingQuantity} of {totalQuantity} {portionUnit} left</span>
+                    ) : (
+                      `${totalQuantity} ${portionUnit}`
+                    )}
+                  </strong>
                 </div>
               </div>
 
@@ -620,7 +649,7 @@ export default function FoodInformationPage() {
                 className="passport-donor-profile"
               />
 
-              {session?.user?.role === 'donor' && !isOwner && (
+              {session?.user?.role === 'donor' && !computedIsOwner && (
                 <div className="donor-role-notice">
                   <Info size={16} className="donor-notice-icon" />
                   <div className="donor-notice-content">
@@ -632,12 +661,71 @@ export default function FoodInformationPage() {
                 </div>
               )}
 
+              {computedIsOwner && (
+                <div className="owner-role-notice">
+                  <CheckCircle2 size={16} className="owner-notice-icon" />
+                  <div className="owner-notice-content">
+                    <span className="owner-notice-title">Your Food Donation</span>
+                    <p className="owner-notice-text">
+                      You created this surplus listing. Community receivers and volunteers can reserve portions from it.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="passport-action-buttons">
+                {isFullyClaimed ? (
+                  <button type="button" className="btn-passport-reserve claimed" disabled aria-disabled="true">
+                    <span>Fully Claimed</span>
+                  </button>
+                ) : isExpired ? (
+                  <button type="button" className="btn-passport-reserve expired" disabled aria-disabled="true">
+                    <span>Pickup Closed</span>
+                  </button>
+                ) : computedIsOwner ? (
+                  <Link to="/listings/mine" className="btn-passport-reserve owner-view">
+                    <span>Manage Your Listing</span>
+                  </Link>
+                ) : session && String(session?.user?.role || '').trim().toLowerCase() === 'donor' ? (
+                  /* Donors cannot claim surplus food */
+                  null
+                ) : !session ? (
+                  <Link to="/login" className="btn-passport-reserve">
+                    <HeartHandshake size={15} />
+                    <span>Sign In to Claim Food</span>
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-passport-reserve"
+                    onClick={() => setShowClaimModal(true)}
+                  >
+                    <HeartHandshake size={15} />
+                    <span>Reserve Food ({remainingQuantity} of {totalQuantity} left)</span>
+                  </button>
+                )}
                 <Link to="/" className="btn-secondary-action">
                   <ArrowLeft size={14} />
                   <span>Back to Community Feed</span>
                 </Link>
               </div>
+
+              {showClaimModal && (
+                <ClaimModal
+                  listing={listingData}
+                  onClose={() => setShowClaimModal(false)}
+                  onClaimSuccess={(res) => {
+                    if (res?.listing) {
+                      setListing((prev) => ({
+                        ...prev,
+                        claimedQuantity: res.listing.claimedQuantity,
+                        remainingQuantity: res.listing.remainingQuantity,
+                        status: res.listing.status,
+                      }));
+                    }
+                  }}
+                />
+              )}
             </section>
           </div>
         </div>

@@ -51,7 +51,7 @@ function validateListingBasics(body) {
 }
 export async function getPublicFeed(req, res, next) {
     try {
-        const filter = { status: { $in: ['available', 'closed'] } };
+        const filter = { status: { $in: ['available', 'claimed', 'closed'] } };
         if (req.query.category && req.query.category !== 'all') {
             filter.category = req.query.category;
         }
@@ -67,6 +67,8 @@ export async function getPublicFeed(req, res, next) {
             const deadline = item.pickupDeadline || item.pickupClosesAt;
             const isDeadlinePassed = Boolean(deadline && new Date(deadline) <= now);
             const status = (item.status === 'closed' || isDeadlinePassed) ? 'closed' : item.status;
+            const claimedQuantity = item.claimedQuantity || 0;
+            const remainingQuantity = Math.max(0, item.quantity - claimedQuantity);
 
             return {
                 _id: item._id,
@@ -75,6 +77,8 @@ export async function getPublicFeed(req, res, next) {
                 photoUrl: item.photoUrl,
                 quantity: item.quantity,
                 portionUnit: item.portionUnit,
+                claimedQuantity,
+                remainingQuantity,
                 category: item.category || 'meals',
                 foodCondition: item.foodCondition,
                 storageDetails: item.storageDetails,
@@ -88,6 +92,7 @@ export async function getPublicFeed(req, res, next) {
                 status,
                 createdAt: item.createdAt,
                 donor: {
+                    _id: item.donor?._id,
                     name: item.donor?.name || 'Community Donor',
                     role: item.donor?.role || 'Member',
                 },

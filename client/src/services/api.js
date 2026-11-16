@@ -13,6 +13,9 @@ export async function apiRequest(path, { token, ...options } = {}) {
   const isPlainObject = options.body && typeof options.body === 'object' && !(options.body instanceof FormData) && !(options.body instanceof Blob);
   const formattedBody = isPlainObject ? JSON.stringify(options.body) : options.body;
 
+  // Automatically use stored token if not explicitly provided
+  const activeToken = token || (typeof window !== 'undefined' ? localStorage.getItem('foodbridge-token') : null);
+
   try {
     const response = await fetch(`${API_BASE}${path}`, {
       ...options,
@@ -20,7 +23,7 @@ export async function apiRequest(path, { token, ...options } = {}) {
       signal: options.signal || controller.signal,
       headers: {
         ...(formattedBody && typeof formattedBody === 'string' ? { 'Content-Type': 'application/json' } : {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(activeToken ? { Authorization: `Bearer ${activeToken}` } : {}),
         ...options.headers,
       },
     });

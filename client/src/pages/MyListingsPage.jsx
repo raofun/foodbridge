@@ -142,7 +142,11 @@ const ListingCard = memo(function ListingCard({
         <span className="card-portion-pill">
           <UtensilsCrossed size={11} />
           <span>
-            {item.quantity} {item.portionUnit}
+            {item.claimedQuantity > 0
+              ? item.claimedQuantity >= item.quantity
+                ? `Fully Claimed (${item.quantity} ${item.portionUnit})`
+                : `${item.claimedQuantity}/${item.quantity} ${item.portionUnit} reserved`
+              : `${item.quantity} ${item.portionUnit}`}
           </span>
         </span>
       </div>
@@ -874,7 +878,7 @@ export default function MyListingsPage() {
 
       {/* Filter & Search Toolbar */}
       <div className="my-listings-toolbar">
-        <div className="toolbar-tabs-group" role="tablist" aria-label="Filter listings by state">
+        <div className="toolbar-tabs-group my-listings-tabs-group" role="tablist" aria-label="Filter listings by state">
           <button
             type="button"
             className={`tab-pill-btn ${activeTab === 'all' ? 'active' : ''}`}
