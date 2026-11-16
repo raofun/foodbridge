@@ -10,6 +10,10 @@ build/
 */build/
 .vite/
 */.vite/
+.vercel/
+*/.vercel/
+**/.vercel/
+.turbo/
 .cache/
 .parcel-cache/
 .eslintcache

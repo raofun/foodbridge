@@ -105,7 +105,28 @@ export default function PickupPassPage() {
   const claim = data?.claim;
   const receiver = data?.receiver;
   const listing = data?.listing;
-  const qrUrl = data?.qrUrl;
+
+  // Ensure QR code always points to the active frontend origin (safeguards against placeholder domains like your-foodbridge-name)
+  const qrUrl = useMemo(() => {
+    const rawCode = claim?.verificationCode || data?.claim?.verificationCode;
+    const listingId = listing?._id || data?.listing?._id;
+    if (!rawCode || !listingId) return data?.qrUrl || '';
+
+    if (data?.qrUrl) {
+      const isPlaceholder = data.qrUrl.includes('your-foodbridge-name') ||
+                            data.qrUrl.includes('example.com') ||
+                            data.qrUrl.includes('your-domain');
+      if (!isPlaceholder) {
+        const backendIsLocal = data.qrUrl.includes('localhost') || data.qrUrl.includes('127.0.0.1');
+        const browserIsLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (backendIsLocal === browserIsLocal) {
+          return data.qrUrl;
+        }
+      }
+    }
+
+    return `${window.location.origin}/listings/${listingId}/verify?code=${rawCode}`;
+  }, [claim?.verificationCode, listing?._id, data]);
 
   const pickupWindowFormatted = useMemo(() => {
     if (!listing) return 'Schedule confirmed with donor';

@@ -20,9 +20,50 @@ import {
   Info,
   Calendar,
   Eye,
+  Camera,
+  CameraOff,
+  ScanQrCode,
+  X,
 } from 'lucide-react';
 import { apiRequest } from '../services/api.js';
 import './PickupVerificationPage.css';
+
+/**
+ * Extracts a 6-character alphanumeric pickup code from scanned QR text.
+ * Robustly parses full verification URLs, URL query parameters, or raw codes.
+ */
+function extractVerificationCode(scannedText) {
+  if (!scannedText) return null;
+  const trimmed = scannedText.trim();
+
+  try {
+    const url = new URL(trimmed);
+    const codeFromParam = url.searchParams.get('code');
+    if (codeFromParam && codeFromParam.trim().length === 6) {
+      const listingMatch = url.pathname.match(/\/listings\/([a-f0-9]{24})/i);
+      return {
+        code: codeFromParam.trim().toUpperCase(),
+        listingId: listingMatch ? listingMatch[1] : null,
+      };
+    }
+  } catch (_) {}
+
+  const codeParamMatch = trimmed.match(/[?&]code=([A-Za-z0-9]{6})/i);
+  if (codeParamMatch) {
+    const listingMatch = trimmed.match(/\/listings\/([a-f0-9]{24})/i);
+    return {
+      code: codeParamMatch[1].toUpperCase(),
+      listingId: listingMatch ? listingMatch[1] : null,
+    };
+  }
+
+  const clean = trimmed.replace(/[\s-]+/g, '').toUpperCase();
+  if (/^[A-Z0-9]{6}$/.test(clean)) {
+    return { code: clean, listingId: null };
+  }
+
+  return null;
+}
 
 export default function PickupVerificationPage() {
   const { listingId, id } = useParams();
@@ -46,6 +87,12 @@ export default function PickupVerificationPage() {
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState('');
   const [successResult, setSuccessResult] = useState(null);
+
+  // Live in-app camera scanner states
+  const [isScanning, setIsScanning] = useState(false);
+  const [cameraLoading, setCameraLoading] = useState(false);
+  const [cameraError, setCameraError] = useState('');
+  const scannerInstanceRef = useRef(null);
 
   const inputRefs = useRef([]);
 
@@ -107,54 +154,153 @@ export default function PickupVerificationPage() {
   };
 
   // Perform Handover Verification
-  const handleVerify = async (e) => {
-    if (e) e.preventDefault();
-    setError('');
-    setSuccessResult(null);
+  const executeVerification = useCallback(
+    async (codeToVerify, targetListingId) => {
+      setError('');
+      setSuccessResult(null);
 
-    if (fullCode.length !== 6) {
-      setError('Please enter all 6 characters of the pickup verification code.');
-      return;
-    }
-
-    setVerifying(true);
-    try {
-      const endpoint = activeListingId
-        ? `/listings/${activeListingId}/verify-pickup`
-        : `/verification/verify-code`;
-
-      const response = await apiRequest(endpoint, {
-        method: 'POST',
-        body: { verificationCode: fullCode },
-      });
-
-      setSuccessResult(response);
-
-      // Dispatch global real-time event across app
-      window.dispatchEvent(
-        new CustomEvent('foodbridge:pickup-verified', {
-          detail: {
-            claim: response.claim,
-            listing: response.listing || response.listingSummary,
-          },
-        })
-      );
-
-      // Refresh station data to update pending & completed lists
-      if (activeListingId) {
-        fetchStationData();
+      const target = (codeToVerify || fullCode).trim().toUpperCase();
+      if (target.length !== 6) {
+        setError('Please enter all 6 characters of the pickup verification code.');
+        return;
       }
-    } catch (err) {
-      setError(err.message || 'Failed to verify pickup code. Please check the code.');
-    } finally {
-      setVerifying(false);
-    }
+
+      setVerifying(true);
+      try {
+        const lid = targetListingId || activeListingId;
+        const endpoint = lid
+          ? `/listings/${lid}/verify-pickup`
+          : `/verification/verify-code`;
+
+        const response = await apiRequest(endpoint, {
+          method: 'POST',
+          body: { verificationCode: target },
+        });
+
+        setSuccessResult(response);
+
+        // Dispatch global real-time event across app
+        window.dispatchEvent(
+          new CustomEvent('foodbridge:pickup-verified', {
+            detail: {
+              claim: response.claim,
+              listing: response.listing || response.listingSummary,
+            },
+          })
+        );
+
+        // Refresh station data to update pending & completed lists
+        if (activeListingId) {
+          fetchStationData();
+        }
+      } catch (err) {
+        setError(err.message || 'Failed to verify pickup code. Please check the code.');
+      } finally {
+        setVerifying(false);
+      }
+    },
+    [fullCode, activeListingId, fetchStationData]
+  );
+
+  const handleVerify = (e) => {
+    if (e) e.preventDefault();
+    executeVerification(fullCode, activeListingId);
   };
+
+  // Gracefully stop camera scanner
+  const stopScanner = useCallback(async () => {
+    if (scannerInstanceRef.current) {
+      try {
+        if (scannerInstanceRef.current.isScanning) {
+          await scannerInstanceRef.current.stop();
+        }
+        scannerInstanceRef.current.clear();
+      } catch (err) {
+        console.warn('Scanner stop warning:', err);
+      } finally {
+        scannerInstanceRef.current = null;
+      }
+    }
+    setIsScanning(false);
+    setCameraLoading(false);
+  }, []);
+
+  // Initialize and start live camera QR code scanner
+  const startScanner = useCallback(async () => {
+    setCameraError('');
+    setError('');
+    setIsScanning(true);
+    setCameraLoading(true);
+
+    setTimeout(async () => {
+      try {
+        const { Html5Qrcode } = await import('html5-qrcode');
+        const readerEl = document.getElementById('qr-camera-reader');
+        if (!readerEl) {
+          setCameraLoading(false);
+          return;
+        }
+
+        const html5QrCode = new Html5Qrcode('qr-camera-reader');
+        scannerInstanceRef.current = html5QrCode;
+
+        await html5QrCode.start(
+          { facingMode: 'environment' },
+          {
+            fps: 10,
+            qrbox: (viewfinderWidth, viewfinderHeight) => {
+              const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+              const edge = Math.max(Math.floor(minEdge * 0.75), 180);
+              return { width: edge, height: edge };
+            },
+            aspectRatio: 1.0,
+          },
+          async (decodedText) => {
+            const parsed = extractVerificationCode(decodedText);
+            if (parsed?.code) {
+              if (navigator.vibrate) {
+                try { navigator.vibrate(100); } catch (_) {}
+              }
+              await stopScanner();
+              const arr = parsed.code.split('');
+              while (arr.length < 6) arr.push('');
+              setCodeArray(arr);
+              executeVerification(parsed.code, parsed.listingId || activeListingId);
+            } else {
+              setCameraError('Scanned QR code does not contain a valid 6-character FoodBridge pickup code.');
+            }
+          },
+          () => {}
+        );
+        setCameraLoading(false);
+      } catch (err) {
+        console.warn('Camera start error:', err);
+        setCameraLoading(false);
+        setCameraError(
+          err?.name === 'NotAllowedError' || err?.message?.includes('Permission')
+            ? 'Camera permission denied. Please allow camera access in browser site settings or enter the code manually.'
+            : 'Unable to open camera stream. Please check camera permissions or enter the code manually.'
+        );
+      }
+    }, 120);
+  }, [activeListingId, executeVerification, stopScanner]);
+
+  // Clean up scanner on unmount
+  useEffect(() => {
+    return () => {
+      if (scannerInstanceRef.current) {
+        if (scannerInstanceRef.current.isScanning) {
+          scannerInstanceRef.current.stop().catch(() => {});
+        }
+        scannerInstanceRef.current = null;
+      }
+    };
+  }, []);
 
   // Auto-submit if opened via camera QR code scan with 6 characters
   useEffect(() => {
     if (urlCode && urlCode.length === 6 && !successResult && !error) {
-      handleVerify();
+      executeVerification(urlCode, activeListingId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlCode]);
@@ -163,6 +309,7 @@ export default function PickupVerificationPage() {
     setCodeArray(['', '', '', '', '', '']);
     setSuccessResult(null);
     setError('');
+    stopScanner();
     setTimeout(() => {
       inputRefs.current[0]?.focus();
     }, 100);
@@ -457,9 +604,76 @@ export default function PickupVerificationPage() {
                   </div>
                   <h3>Physical Handover Authentication</h3>
                   <p>
-                    Ask the receiver for their 6-character pickup verification code or scan their QR code with your mobile camera.
+                    Ask the receiver for their 6-character pickup verification code or scan their QR code with your camera.
                   </p>
                 </div>
+
+                {/* Camera Scanner Toggle Bar */}
+                <div className="verify-scan-option-bar">
+                  <button
+                    type="button"
+                    className={`btn-toggle-scanner ${isScanning ? 'active' : ''}`}
+                    onClick={isScanning ? stopScanner : startScanner}
+                    disabled={verifying}
+                  >
+                    {isScanning ? (
+                      <>
+                        <CameraOff size={18} />
+                        <span>Close Camera Scanner</span>
+                      </>
+                    ) : (
+                      <>
+                        <ScanQrCode size={18} />
+                        <span>Scan QR with Camera</span>
+                      </>
+                    )}
+                  </button>
+                  <span className="verify-scan-divider">or enter 6-digit code manually</span>
+                </div>
+
+                {/* Live Camera Viewfinder Modal */}
+                {isScanning && (
+                  <div className="verify-camera-viewport-card">
+                    <div className="camera-header-row">
+                      <div className="camera-live-badge">
+                        <span className="live-dot" />
+                        <span>{cameraLoading ? 'STARTING CAMERA...' : 'LIVE QR SCANNER'}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-camera-close"
+                        onClick={stopScanner}
+                        title="Close camera"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+
+                    <div className="camera-video-wrapper">
+                      <div id="qr-camera-reader" className="qr-reader-container" />
+                      {!cameraLoading && !cameraError && (
+                        <div className="scanner-crosshair-overlay">
+                          <div className="reticle-corner top-left" />
+                          <div className="reticle-corner top-right" />
+                          <div className="reticle-corner bottom-left" />
+                          <div className="reticle-corner bottom-right" />
+                          <div className="scanner-laser-line" />
+                        </div>
+                      )}
+                    </div>
+
+                    {cameraError && (
+                      <div className="camera-error-banner">
+                        <AlertCircle size={15} />
+                        <span>{cameraError}</span>
+                      </div>
+                    )}
+
+                    <p className="camera-scan-instruction">
+                      Position recipient’s Pickup Pass QR code inside the frame to verify automatically.
+                    </p>
+                  </div>
+                )}
 
                 {/* Segmented 6-Character Input */}
                 <div className="segmented-inputs-wrap" onPaste={handlePaste}>
