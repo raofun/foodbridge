@@ -21,9 +21,7 @@ const DHAKA_NEIGHBORHOODS = [
   'Lalbagh',
 ];
 
-/**
- * Parses raw donor and pickup data to cleanly separate organization name and neighborhood.
-   "Rajshahi Fruit Express, Mirpur" -> orgName: "Rajshahi Fruit Express", location: "Mirpur" */
+
 export function parseDonorDetails(donor, pickupLocation) {
   const rawName = (typeof donor === 'string' ? donor : donor?.name) || 'Community Donor';
   const avatarUrl = donor?.avatarUrl || donor?.photoUrl || donor?.logoUrl;

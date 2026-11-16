@@ -5,6 +5,7 @@ import { connectDB } from './config/db.js';
 import errorHandler from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.js';
 import listingRoutes from './routes/listings.js';
+import claimRoutes from './routes/claims.js';
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.get('/api/health', (_req, res) => {
 // Route Handlers
 app.use('/api/auth', authRoutes);
 app.use('/api/listings', listingRoutes);
+app.use('/api/claims', claimRoutes);
 
 // Centralized Error Handling
 app.use(errorHandler);

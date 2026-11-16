@@ -8,11 +8,13 @@ import {
     X,
     ArrowRight,
     RotateCw,
-    AlertCircle
+    AlertCircle,
+    HeartHandshake
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { apiRequest } from '../services/api.js';
 import FeedSearchFilter from '../components/FeedSearchFilter.jsx';
+import ClaimModal from '../components/ClaimModal.jsx';
 import './HomePage.css';
 
 export function formatPickupDeadline(deadlineValue, status, currentTime = new Date()) {
@@ -143,6 +145,28 @@ export default function HomePage() {
 
     const [selectedListing, setSelectedListing] = useState(null);
     const [modalType, setModalType] = useState(null);
+    const [claimListing, setClaimListing] = useState(null);
+
+    const handleClaimClick = (listing) => {
+        const deadline = listing.pickupDeadline || listing.pickupClosesAt;
+        const isExpired = listing.status === 'closed' || (deadline && new Date(deadline) <= currentTime);
+        if (isExpired || listing.status === 'claimed') return;
+
+        if (!session) {
+            setSelectedListing(listing);
+            setModalType('auth-gate');
+            return;
+        }
+
+        const role = String(session.user?.role || '').trim().toLowerCase();
+        if (role === 'donor') return;
+
+        const currentId = String(session.user?.id || session.user?._id || '');
+        const donorId = String(listing.donor?._id || listing.donor || '');
+        if (currentId && donorId && currentId === donorId) return;
+
+        setClaimListing(listing);
+    };
 
     const isItemActive = useCallback((item) => {
         const deadline = item.pickupDeadline || item.pickupClosesAt;
@@ -337,9 +361,15 @@ export default function HomePage() {
                                     </div>
 
                                     <div className="card-summary-row">
-                                        <span className="pill-portion">
+                                        <span className={`pill-portion ${item.status === 'claimed' || (item.remainingQuantity !== undefined && item.remainingQuantity <= 0) ? 'claimed-portion' : ''}`}>
                                             <UtensilsCrossed size={12} />
-                                            <span>{item.quantity} {item.portionUnit}</span>
+                                            {item.status === 'claimed' || (item.remainingQuantity !== undefined && item.remainingQuantity <= 0) ? (
+                                                <span>Fully Claimed</span>
+                                            ) : item.claimedQuantity > 0 ? (
+                                                <span>{item.remainingQuantity} of {item.quantity} {item.portionUnit} left</span>
+                                            ) : (
+                                                <span>{item.quantity} {item.portionUnit}</span>
+                                            )}
                                         </span>
                                         <span className="card-neighborhood">
                                             <MapPin size={12} />
@@ -359,29 +389,56 @@ export default function HomePage() {
                                             >
                                                 <span>Pickup closed</span>
                                             </button>
-                                        ) : (
+                                        ) : item.status === 'claimed' || (item.remainingQuantity !== undefined && item.remainingQuantity <= 0) ? (
                                             <button
                                                 type="button"
-                                                className={`btn-card-receive ${session?.user?.role === 'donor' ? 'donor-btn' : ''}`}
+                                                className="btn-card-receive claimed-btn"
+                                                disabled
+                                                aria-disabled="true"
+                                                tabIndex={-1}
+                                                title="All portions of this food listing have been claimed by community members"
+                                            >
+                                                <span>Fully Claimed</span>
+                                            </button>
+                                        ) : Boolean(session?.user?.id && String(item.donor?._id || item.donor) === String(session.user.id)) ? (
+                                            <button
+                                                type="button"
+                                                className="btn-card-receive donor-btn"
                                                 onClick={() => openListing(item)}
                                             >
-                                                {Boolean(session?.user?.id && String(item.donor?._id || item.donor) === String(session.user.id)) ? (
-                                                    <>
-                                                        <span>View your listing</span>
-                                                        <ArrowRight size={13} />
-                                                    </>
-                                                ) : session?.user?.role === 'donor' ? (
-                                                    <>
-                                                        <span>View food details</span>
-                                                        <ArrowRight size={13} />
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <span>View more to receive</span>
-                                                        <ArrowRight size={13} />
-                                                    </>
-                                                )}
+                                                <span>Your listing</span>
+                                                <ArrowRight size={13} />
                                             </button>
+                                        ) : session?.user?.role === 'donor' ? (
+                                            <button
+                                                type="button"
+                                                className="btn-card-details single-action"
+                                                onClick={() => openListing(item)}
+                                                title="Inspect food safety passport"
+                                            >
+                                                <span>View details</span>
+                                                <ArrowRight size={13} />
+                                            </button>
+                                        ) : (
+                                            <div className="card-action-pair">
+                                                <button
+                                                    type="button"
+                                                    className="btn-card-claim"
+                                                    onClick={() => handleClaimClick(item)}
+                                                >
+                                                    <HeartHandshake size={14} />
+                                                    <span>Claim Food</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn-card-details"
+                                                    onClick={() => openListing(item)}
+                                                    title="Inspect food safety passport"
+                                                >
+                                                    <span>Details</span>
+                                                    <ArrowRight size={12} />
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -439,7 +496,7 @@ export default function HomePage() {
                                 <UtensilsCrossed size={20} strokeWidth={2.2} />
                             </div>
                             <h2 id="food-auth-title">Welcome to FoodBridge</h2>
-                            <p id="food-auth-description">Sign in to continue to this pickup.</p>
+                            <p id="food-auth-description">Sign in with a receiver or volunteer account to claim community food.</p>
                             <div className="modal-actions-stack">
                                 <Link
                                     to="/login"
@@ -463,6 +520,16 @@ export default function HomePage() {
                         </div>
                     </section>
                 </div>
+            )}
+
+            {claimListing && (
+                <ClaimModal
+                    listing={claimListing}
+                    onClose={() => setClaimListing(null)}
+                    onClaimSuccess={() => {
+                        reloadFeed();
+                    }}
+                />
             )}
         </div>
     );

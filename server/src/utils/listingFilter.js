@@ -40,16 +40,16 @@ export async function buildFeedFilter(queryParams = {}) {
             ],
         });
     } else if (availability === 'closed') {
-        filter.status = { $in: ['available', 'closed'] };
+        filter.status = { $in: ['available', 'claimed', 'closed'] };
         andConditions.push({
             $or: [
-                { status: 'closed' },
+                { status: { $in: ['closed', 'claimed'] } },
                 { pickupDeadline: { $lte: now } },
                 { pickupClosesAt: { $lte: now } },
             ],
         });
     } else {
-        filter.status = { $in: ['available', 'closed'] };
+        filter.status = { $in: ['available', 'claimed', 'closed'] };
     }
 
     if (category && category !== 'all') {

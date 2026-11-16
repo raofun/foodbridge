@@ -10,13 +10,20 @@ export async function apiRequest(path, { token, ...options } = {}) {
   // 90-second timeout to accommodate Render free-tier cold starts (50-90s)
   const timeoutId = setTimeout(() => controller.abort(), 90000);
 
+  const isPlainObject = options.body && typeof options.body === 'object' && !(options.body instanceof FormData) && !(options.body instanceof Blob);
+  const formattedBody = isPlainObject ? JSON.stringify(options.body) : options.body;
+
+  // Automatically use stored token if not explicitly provided
+  const activeToken = token || (typeof window !== 'undefined' ? localStorage.getItem('foodbridge-token') : null);
+
   try {
     const response = await fetch(`${API_BASE}${path}`, {
       ...options,
+      body: formattedBody,
       signal: options.signal || controller.signal,
       headers: {
-        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(formattedBody && typeof formattedBody === 'string' ? { 'Content-Type': 'application/json' } : {}),
+        ...(activeToken ? { Authorization: `Bearer ${activeToken}` } : {}),
         ...options.headers,
       },
     });

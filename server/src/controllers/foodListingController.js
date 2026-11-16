@@ -50,7 +50,6 @@ function validateListingBasics(body) {
     }
     return null;
 }
-
 export async function getPublicFeed(req, res, next) {
     try {
         const filter = await buildFeedFilter(req.query);
@@ -67,6 +66,8 @@ export async function getPublicFeed(req, res, next) {
             const deadline = item.pickupDeadline || item.pickupClosesAt;
             const isDeadlinePassed = Boolean(deadline && new Date(deadline) <= now);
             const status = (item.status === 'closed' || isDeadlinePassed) ? 'closed' : item.status;
+            const claimedQuantity = item.claimedQuantity || 0;
+            const remainingQuantity = Math.max(0, item.quantity - claimedQuantity);
 
             return {
                 _id: item._id,
@@ -75,6 +76,8 @@ export async function getPublicFeed(req, res, next) {
                 photoUrl: item.photoUrl,
                 quantity: item.quantity,
                 portionUnit: item.portionUnit,
+                claimedQuantity,
+                remainingQuantity,
                 category: item.category || 'meals',
                 foodCondition: item.foodCondition,
                 pickupLocation: item.pickupLocation,
@@ -82,6 +85,7 @@ export async function getPublicFeed(req, res, next) {
                 status,
                 createdAt: item.createdAt,
                 donor: {
+                    _id: item.donor?._id,
                     name: item.donor?.name || 'Community Donor',
                     role: item.donor?.role || 'Member',
                 },
@@ -165,37 +169,40 @@ export async function updateListing(req, res, next) {
         if (String(listing.donor) !== String(req.user.id)) {
             return res.status(403).json({ message: 'You are not authorized to update this listing.' });
         }
-        if (listing.status === 'closed') {
-            return res.status(409).json({ message: 'Cannot update a closed listing.' });
-        }
 
+        // 1. Basic Details
         const foodName = req.body.foodName || req.body.title;
         const portionUnit = req.body.portionUnit || req.body.unit;
         const photoUrl = req.body.photoUrl !== undefined ? req.body.photoUrl : req.body.imageUrl;
-        const rawDeadline = req.body.pickupDeadline || req.body.pickupClosesAt || req.body.pickupWindowEnd;
 
         if (foodName !== undefined) {
             if (!foodName.trim()) return res.status(400).json({ message: 'Food name cannot be empty.' });
             if (foodName.trim().length > 120) return res.status(400).json({ message: 'Food name must be 120 characters or fewer.' });
             listing.foodName = foodName.trim();
         }
+
         if (req.body.description !== undefined) {
-            if (req.body.description.length > 2000) return res.status(400).json({ message: 'Description must be 2000 characters or fewer.' });
-            listing.description = req.body.description.trim();
+            const desc = String(req.body.description).trim();
+            if (desc.length > 2000) return res.status(400).json({ message: 'Description must be 2000 characters or fewer.' });
+            listing.description = desc;
         }
+
         if (portionUnit !== undefined) {
             if (!portionUnit.trim()) return res.status(400).json({ message: 'Portion unit cannot be empty.' });
             if (portionUnit.trim().length > 40) return res.status(400).json({ message: 'Portion unit must be 40 characters or fewer.' });
             listing.portionUnit = portionUnit.trim();
         }
+
         if (req.body.quantity !== undefined) {
             const numQty = Number(req.body.quantity);
             if (!Number.isInteger(numQty) || numQty < 1) return res.status(400).json({ message: 'Quantity must be a whole number of at least 1.' });
             listing.quantity = numQty;
         }
+
         if (req.body.category !== undefined) {
             listing.category = normalizeCategory(req.body.category);
         }
+
         if (photoUrl !== undefined) {
             const clean = String(photoUrl).trim();
             if (clean && !/^https?:\/\//i.test(clean) && !/^data:image\//i.test(clean)) {
@@ -203,17 +210,129 @@ export async function updateListing(req, res, next) {
             }
             listing.photoUrl = clean;
         }
+
+        // 2. Food Safety & Storage Information
+        if (req.body.preparedAt !== undefined) {
+            if (!req.body.preparedAt) {
+                listing.preparedAt = null;
+            } else {
+                const prepDate = new Date(req.body.preparedAt);
+                if (isNaN(prepDate.getTime())) return res.status(400).json({ message: 'Preparation date and time must be valid.' });
+                listing.preparedAt = prepDate;
+            }
+        }
+
+        if (req.body.storageDetails !== undefined) {
+            const clean = String(req.body.storageDetails).trim();
+            if (clean.length > 500) return res.status(400).json({ message: 'Storage details must be 500 characters or fewer.' });
+            listing.storageDetails = clean;
+        }
+
+        if (req.body.foodCondition !== undefined) {
+            const validConditions = ['fresh', 'refrigerated', 'frozen', 'shelf-stable'];
+            if (req.body.foodCondition && !validConditions.includes(req.body.foodCondition)) {
+                return res.status(400).json({ message: 'Food condition must be fresh, refrigerated, frozen, or shelf-stable.' });
+            }
+            listing.foodCondition = req.body.foodCondition || 'fresh';
+        }
+
+        if (req.body.useByAt !== undefined) {
+            if (!req.body.useByAt) {
+                listing.useByAt = null;
+            } else {
+                const useByDate = new Date(req.body.useByAt);
+                if (isNaN(useByDate.getTime())) return res.status(400).json({ message: 'Use-by date and time must be valid.' });
+                if (listing.preparedAt && useByDate.getTime() <= listing.preparedAt.getTime()) {
+                    return res.status(400).json({ message: 'Use-by time must be after preparation time.' });
+                }
+                listing.useByAt = useByDate;
+            }
+        }
+
+        if (req.body.safetyNotes !== undefined) {
+            const clean = String(req.body.safetyNotes).trim();
+            if (clean.length > 1000) return res.status(400).json({ message: 'Safety notes must be 1000 characters or fewer.' });
+            listing.safetyNotes = clean;
+        }
+
+        // 3. Pickup Schedule & Location
+        if (req.body.pickupLocation !== undefined) {
+            const clean = String(req.body.pickupLocation).trim();
+            if (clean.length > 300) return res.status(400).json({ message: 'Pickup location must be 300 characters or fewer.' });
+            listing.pickupLocation = clean;
+        }
+
+        if (req.body.pickupOpensAt !== undefined) {
+            if (!req.body.pickupOpensAt) {
+                listing.pickupOpensAt = null;
+            } else {
+                const opens = new Date(req.body.pickupOpensAt);
+                if (isNaN(opens.getTime())) return res.status(400).json({ message: 'Pickup opening time must be valid.' });
+                listing.pickupOpensAt = opens;
+            }
+        }
+
+        const rawDeadline = req.body.pickupDeadline || req.body.pickupClosesAt || req.body.pickupWindowEnd;
         if (rawDeadline !== undefined) {
-            const deadline = new Date(rawDeadline);
-            if (isNaN(deadline.getTime())) return res.status(400).json({ message: 'Pickup deadline must be a valid date and time.' });
-            if (deadline.getTime() <= Date.now()) return res.status(400).json({ message: 'Pickup deadline cannot be in the past.' });
-            listing.pickupDeadline = deadline;
-            listing.pickupClosesAt = deadline;
+            if (!rawDeadline) {
+                listing.pickupClosesAt = null;
+                listing.pickupDeadline = null;
+            } else {
+                const deadline = new Date(rawDeadline);
+                if (isNaN(deadline.getTime())) return res.status(400).json({ message: 'Pickup deadline must be a valid date and time.' });
+                listing.pickupClosesAt = deadline;
+                listing.pickupDeadline = deadline;
+            }
+        }
+
+        if (listing.pickupOpensAt && listing.pickupClosesAt) {
+            if (listing.pickupOpensAt.getTime() >= listing.pickupClosesAt.getTime()) {
+                return res.status(400).json({ message: 'Pickup closing time must be after opening time.' });
+            }
+        }
+
+        // 4. Status Handling
+        if (req.body.status !== undefined) {
+            const targetStatus = req.body.status;
+            if (!['draft', 'available', 'closed'].includes(targetStatus)) {
+                return res.status(400).json({ message: 'Status must be one of: draft, available, closed.' });
+            }
+
+            if (targetStatus === 'available') {
+                const activeDeadline = listing.pickupClosesAt || listing.pickupDeadline;
+                if (!activeDeadline || activeDeadline.getTime() <= Date.now()) {
+                    return res.status(400).json({ message: 'To make this listing available, provide a future pickup closing deadline.' });
+                }
+                listing.status = 'available';
+            } else {
+                listing.status = targetStatus;
+            }
         }
 
         await listing.save();
         await listing.populate('donor', 'name role email');
         res.json({ listing });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function closeListing(req, res, next) {
+    try {
+        if (req.user?.role === 'receiver') {
+            return res.status(403).json({ message: 'Receivers are not permitted to manage food listings.' });
+        }
+        const listing = await Listing.findById(req.params.id);
+        if (!listing) return res.status(404).json({ message: 'Listing not found.' });
+
+        if (String(listing.donor) !== String(req.user.id)) {
+            return res.status(403).json({ message: 'You are not authorized to close this listing.' });
+        }
+
+        listing.status = 'closed';
+        await listing.save();
+        await listing.populate('donor', 'name role email');
+        res.json({ listing, message: 'Pickup closed successfully.' });
     } catch (error) {
         next(error);
     }
@@ -226,7 +345,8 @@ export async function myListings(req, res, next) {
         }
         const listings = await Listing.find({ donor: req.user.id })
             .sort({ createdAt: -1 })
-            .populate('donor', 'name role email');
+            .populate('donor', 'name role email')
+            .lean();
         res.json({ listings });
     } catch (error) {
         next(error);

@@ -11,6 +11,7 @@ const FoodListingPage = lazy(() => import('./pages/FoodListingPage.jsx'));
 const FoodInformationPage = lazy(() => import('./pages/FoodInformationPage.jsx'));
 const PickupSchedulePage = lazy(() => import('./pages/PickupSchedulePage.jsx'));
 const MyListingsPage = lazy(() => import('./pages/MyListingsPage.jsx'));
+const MyClaimsPage = lazy(() => import('./pages/MyClaimsPage.jsx'));
 
 function LoadingFallback() {
   return (
@@ -100,6 +101,18 @@ export default function App() {
             </DonorRoute>
           }
         />
+        <Route
+          path="claims/mine"
+          element={
+            <ProtectedRoute>
+              <Suspense fallback={<LoadingFallback />}>
+                <MyClaimsPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="my-claims" element={<Navigate to="/claims/mine" replace />} />
+        <Route path="claims" element={<Navigate to="/claims/mine" replace />} />
       </Route>
 
       <Route

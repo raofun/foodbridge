@@ -17,7 +17,11 @@ const listingSchema = new mongoose.Schema({
   pickupOpensAt: { type: Date },
   pickupClosesAt: { type: Date },
   pickupDeadline: { type: Date },
-  status: { type: String, enum: ['draft', 'available', 'closed'], default: 'draft' },
+  claimedQuantity: { type: Number, default: 0, min: 0 },
+  status: { type: String, enum: ['draft', 'available', 'claimed', 'closed'], default: 'draft' },
 }, { timestamps: true });
+
+listingSchema.index({ donor: 1, createdAt: -1 });
+listingSchema.index({ donor: 1, status: 1 });
 
 export default mongoose.model('Listing', listingSchema);

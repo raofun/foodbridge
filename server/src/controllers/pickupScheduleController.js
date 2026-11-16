@@ -61,10 +61,6 @@ export async function savePickupSchedule(req, res, next) {
       return res.status(403).json({ message: 'You are not authorized to update this listing schedule.' });
     }
 
-    if (listing.status === 'closed') {
-      return res.status(409).json({ message: 'Cannot schedule pickup for a closed listing.' });
-    }
-
     if (!listing.preparedAt || !listing.storageDetails || !listing.foodCondition) {
       return res.status(409).json({ message: 'Complete the food information step before scheduling pickup.' });
     }

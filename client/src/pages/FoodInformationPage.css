@@ -842,6 +842,18 @@
   white-space: nowrap;
 }
 
+.passport-portion-badge.claimed {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #f87171;
+}
+
+.passport-portion-badge.partial {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+
 .passport-description {
   font-size: 14.5px;
   color: var(--fb-text-sub, #94a3b8);
@@ -1197,6 +1209,42 @@
   line-height: 1.5;
 }
 
+.owner-role-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.22);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-top: 14px;
+}
+
+.owner-notice-icon {
+  color: #4ade80;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.owner-notice-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.owner-notice-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #86efac;
+}
+
+.owner-notice-text {
+  font-size: 12.5px;
+  color: #bbf7d0;
+  margin: 0;
+  line-height: 1.5;
+}
+
 .passport-action-buttons {
   display: flex;
   align-items: center;
@@ -1205,6 +1253,52 @@
   flex-wrap: wrap;
   padding-top: 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.btn-passport-reserve {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 11px 22px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+  transition: all 0.18s ease;
+}
+
+.btn-passport-reserve:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+}
+
+.btn-passport-reserve.claimed {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-passport-reserve.expired {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-passport-reserve.owner-view {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
 }
 
 /* Responsive Media Queries */

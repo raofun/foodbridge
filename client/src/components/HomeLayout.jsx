@@ -10,7 +10,8 @@ import {
     Sparkles,
     Menu,
     X,
-    HeartHandshake
+    HeartHandshake,
+    ShoppingBag
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { apiRequest } from '../services/api.js';
@@ -88,6 +89,7 @@ export default function HomeLayout() {
         if (location.pathname.includes('/information') || location.pathname.includes('/food-information')) return 'Food Information';
         if (location.pathname.includes('/pickup')) return 'Pickup Schedule';
         if (location.pathname.startsWith('/listings/mine')) return 'My Listings';
+        if (location.pathname.startsWith('/claims/mine')) return 'My Food Reservations';
         return 'FoodBridge Network';
     };
 
@@ -219,6 +221,20 @@ export default function HomeLayout() {
                                     <span className="nav-title">My Listings</span>
                                 </NavLink>
                             </>
+                        )}
+
+                        {session && ['receiver', 'volunteer'].includes(String(session.user?.role || '').trim().toLowerCase()) && (
+                            <NavLink
+                                to="/claims/mine"
+                                className={({ isActive }) =>
+                                    `nav-item${isActive ? ' selected' : ''}`
+                                }
+                            >
+                                <div className="nav-icon-box">
+                                    <ShoppingBag size={15} />
+                                </div>
+                                <span className="nav-title">My Reservations</span>
+                            </NavLink>
                         )}
                     </div>
 
