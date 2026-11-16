@@ -11,11 +11,13 @@ import {
     Menu,
     X,
     HeartHandshake,
-    ShoppingBag
+    ShoppingBag,
+    ShieldCheck,
+    ShieldAlert
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { apiRequest } from '../services/api.js';
-import '../styles/homeLayout.css';
+import './HomeLayout.css';
 
 export default function HomeLayout() {
     const { session, signOut } = useAuth();
@@ -93,6 +95,7 @@ export default function HomeLayout() {
         if (location.pathname.includes('/pickup')) return 'Pickup Schedule';
         if (location.pathname.startsWith('/listings/mine')) return 'My Listings';
         if (location.pathname.startsWith('/claims/mine')) return 'My Food Reservations';
+        if (location.pathname === '/admin') return 'Admin Control Center';
         return 'FoodBridge Network';
     };
 
@@ -223,6 +226,17 @@ export default function HomeLayout() {
                                     </div>
                                     <span className="nav-title">My Listings</span>
                                 </NavLink>
+                                <NavLink
+                                    to="/verify-pickup"
+                                    className={({ isActive }) =>
+                                        `nav-item${isActive ? ' selected' : ''}`
+                                    }
+                                >
+                                    <div className="nav-icon-box">
+                                        <ShieldCheck size={15} />
+                                    </div>
+                                    <span className="nav-title">Verify Pickup</span>
+                                </NavLink>
                             </>
                         )}
 
@@ -237,6 +251,23 @@ export default function HomeLayout() {
                                     <ShoppingBag size={15} />
                                 </div>
                                 <span className="nav-title">My Reservations</span>
+                            </NavLink>
+                        )}
+
+                        {session && session.user?.role === 'admin' && (
+                            <NavLink
+                                to="/admin"
+                                className={({ isActive }) =>
+                                    `nav-item${isActive ? ' selected' : ''}`
+                                }
+                            >
+                                <div className="nav-icon-box" style={{ color: '#f87171' }}>
+                                    <ShieldAlert size={15} />
+                                </div>
+                                <span className="nav-title">Admin Dashboard</span>
+                                <span className="nav-pill-action" style={{ background: 'rgba(239, 68, 68, 0.18)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.35)' }}>
+                                    Admin
+                                </span>
                             </NavLink>
                         )}
                     </div>

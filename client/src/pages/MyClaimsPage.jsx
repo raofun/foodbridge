@@ -21,7 +21,10 @@ import {
   Users,
   Package,
   Search,
-  Check
+  Check,
+  QrCode,
+  ShieldCheck,
+  Trash2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { apiRequest } from '../services/api.js';
@@ -38,6 +41,8 @@ export default function MyClaimsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [cancellingClaimId, setCancellingClaimId] = useState(null);
   const [confirmCancelModal, setConfirmCancelModal] = useState(null);
+  const [deletingClaimId, setDeletingClaimId] = useState(null);
+  const [confirmDeleteModal, setConfirmDeleteModal] = useState(null);
   const [editingClaim, setEditingClaim] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
 
@@ -148,6 +153,22 @@ export default function MyClaimsPage() {
       setError(err.message || 'Failed to cancel reservation.');
     } finally {
       setCancellingClaimId(null);
+    }
+  };
+
+  const handleDeleteClaim = async (claimId) => {
+    setDeletingClaimId(claimId);
+    setError('');
+    setNotice('');
+    try {
+      const res = await apiRequest(`/claims/${claimId}`, { method: 'DELETE' });
+      setNotice(res.message || 'Cancelled reservation permanently removed.');
+      setClaims((prev) => prev.filter((c) => c._id !== claimId));
+      setConfirmDeleteModal(null);
+    } catch (err) {
+      setError(err.message || 'Failed to delete reservation record.');
+    } finally {
+      setDeletingClaimId(null);
     }
   };
 
@@ -403,6 +424,7 @@ export default function MyClaimsPage() {
           {filteredClaims.map((claim) => {
             const listing = claim.listing || {};
             const isReserved = claim.status === 'reserved';
+            const isCompleted = claim.status === 'completed';
             const pickupCloses = listing.pickupClosesAt || listing.pickupDeadline;
 
             // Accurate Dynamic stock calculations
@@ -415,7 +437,7 @@ export default function MyClaimsPage() {
             const pctClaimed = Math.min(100, Math.round((claimedListingQty / Math.max(1, totalListingQty)) * 100));
 
             return (
-              <article className={`claim-card ${isReserved ? 'active' : 'cancelled'}`} key={claim._id}>
+              <article className={`claim-card ${isReserved ? 'active' : isCompleted ? 'completed' : 'cancelled'}`} key={claim._id}>
                 {/* Media Image & Status Badges */}
                 <div className="claim-card-media">
                   {listing.photoUrl ? (
@@ -425,9 +447,9 @@ export default function MyClaimsPage() {
                       <UtensilsCrossed size={36} />
                     </div>
                   )}
-                  <span className={`claim-status-badge ${isReserved ? 'reserved' : 'cancelled'}`}>
-                    <span className={`status-badge-dot ${isReserved ? 'reserved' : 'cancelled'}`} />
-                    <span>{isReserved ? 'Active Pickup' : 'Cancelled'}</span>
+                  <span className={`claim-status-badge ${claim.status || 'reserved'}`}>
+                    <span className={`status-badge-dot ${claim.status || 'reserved'}`} />
+                    <span>{isCompleted ? 'Handover Collected' : isReserved ? 'Active Pickup' : 'Cancelled'}</span>
                   </span>
                   <span className="claim-card-category">{listing.category || 'meals'}</span>
                 </div>
@@ -571,10 +593,30 @@ export default function MyClaimsPage() {
                         <strong>Note:</strong> "{claim.receiverNotes}"
                       </div>
                     )}
+
+                    {/* Verification Code Quick Preview */}
+                    {isReserved && claim.verificationCode && (
+                      <div className="meta-row" style={{ background: 'rgba(16, 185, 129, 0.12)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.28)' }}>
+                        <ShieldCheck size={14} style={{ color: '#34d399' }} />
+                        <span className="meta-text" style={{ color: '#34d399', fontWeight: 600 }}>
+                          Pickup Code: <strong style={{ fontFamily: 'monospace', letterSpacing: '1px', fontSize: '13px', color: '#6ee7b7' }}>{claim.verificationCode}</strong>
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions Footer */}
                   <div className="claim-card-actions">
+                    <Link
+                      to={`/claims/${claim._id}/pass`}
+                      className="btn-card-action pass"
+                      style={{ background: 'rgba(16, 185, 129, 0.16)', borderColor: 'rgba(16, 185, 129, 0.38)', color: '#34d399', fontWeight: 700 }}
+                      title="Open digital boarding pass and QR code"
+                    >
+                      <QrCode size={13} />
+                      <span>{isCompleted ? 'View Pass' : 'Pickup Pass & QR'}</span>
+                    </Link>
+
                     <Link
                       to={`/listings/${listing._id}/information`}
                       className="btn-card-action primary"
@@ -606,6 +648,19 @@ export default function MyClaimsPage() {
                           <span>Cancel</span>
                         </button>
                       </>
+                    )}
+
+                    {claim.status === 'cancelled' && (
+                      <button
+                        type="button"
+                        className="btn-card-action delete"
+                        onClick={() => setConfirmDeleteModal(claim)}
+                        disabled={deletingClaimId === claim._id}
+                        title="Permanently delete this cancelled reservation"
+                      >
+                        <Trash2 size={13} />
+                        <span>Delete Record</span>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -695,6 +750,58 @@ export default function MyClaimsPage() {
                   </>
                 ) : (
                   <span>Yes, Cancel & Release</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal for Cancelled Claims */}
+      {confirmDeleteModal && (
+        <div className="claims-modal-backdrop" onClick={() => setConfirmDeleteModal(null)} role="dialog" aria-modal="true">
+          <div className="claims-modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="cancel-modal-header">
+              <div className="cancel-icon-wrap" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444' }}>
+                <Trash2 size={26} />
+              </div>
+              <div>
+                <h3>Delete this cancelled reservation?</h3>
+                <p>
+                  Permanently remove the cancelled record for{' '}
+                  <strong>{confirmDeleteModal.quantity} {confirmDeleteModal.portionUnit || 'portions'}</strong> of{' '}
+                  <em>{confirmDeleteModal.listing?.foodName}</em>.
+                </p>
+              </div>
+            </div>
+
+            <p className="cancel-warning-text" style={{ color: '#f87171' }}>
+              This action is permanent and will completely delete this record from the database.
+            </p>
+
+            <div className="cancel-modal-actions">
+              <button
+                type="button"
+                className="btn-modal-back"
+                onClick={() => setConfirmDeleteModal(null)}
+                disabled={Boolean(deletingClaimId)}
+              >
+                Keep Record
+              </button>
+              <button
+                type="button"
+                className="btn-modal-confirm-cancel"
+                style={{ background: '#dc2626', borderColor: '#b91c1c' }}
+                onClick={() => handleDeleteClaim(confirmDeleteModal._id)}
+                disabled={Boolean(deletingClaimId)}
+              >
+                {deletingClaimId === confirmDeleteModal._id ? (
+                  <>
+                    <Loader2 size={14} className="spinning" />
+                    <span>Deleting Record...</span>
+                  </>
+                ) : (
+                  <span>Yes, Delete from Database</span>
                 )}
               </button>
             </div>

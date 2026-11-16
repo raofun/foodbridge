@@ -12,6 +12,9 @@ const FoodInformationPage = lazy(() => import('./pages/FoodInformationPage.jsx')
 const PickupSchedulePage = lazy(() => import('./pages/PickupSchedulePage.jsx'));
 const MyListingsPage = lazy(() => import('./pages/MyListingsPage.jsx'));
 const MyClaimsPage = lazy(() => import('./pages/MyClaimsPage.jsx'));
+const PickupPassPage = lazy(() => import('./pages/PickupPassPage.jsx'));
+const PickupVerificationPage = lazy(() => import('./pages/PickupVerificationPage.jsx'));
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage.jsx'));
 
 function LoadingFallback() {
   return (
@@ -41,6 +44,15 @@ function AuthRoute({ children }) {
   const { session, loading } = useAuth();
   if (loading) return <LoadingFallback />;
   return session ? <Navigate to="/" replace /> : children;
+}
+
+function AdminRoute({ children }) {
+  const { session, loading } = useAuth();
+  const location = useLocation();
+  if (loading) return <LoadingFallback />;
+  if (!session) return <Navigate to="/login" state={{ from: location }} replace />;
+  if (session.user?.role !== 'admin') return <Navigate to="/" replace />;
+  return children;
 }
 
 export default function App() {
@@ -113,6 +125,58 @@ export default function App() {
         />
         <Route path="my-claims" element={<Navigate to="/claims/mine" replace />} />
         <Route path="claims" element={<Navigate to="/claims/mine" replace />} />
+
+        {/* FR10: Pickup Verification & Digital Handover Pass */}
+        <Route
+          path="claims/:claimId/pass"
+          element={
+            <ProtectedRoute>
+              <Suspense fallback={<LoadingFallback />}>
+                <PickupPassPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="pickup-pass/:claimId"
+          element={
+            <ProtectedRoute>
+              <Suspense fallback={<LoadingFallback />}>
+                <PickupPassPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="listings/:listingId/verify"
+          element={
+            <DonorRoute>
+              <Suspense fallback={<LoadingFallback />}>
+                <PickupVerificationPage />
+              </Suspense>
+            </DonorRoute>
+          }
+        />
+        <Route
+          path="verify-pickup"
+          element={
+            <DonorRoute>
+              <Suspense fallback={<LoadingFallback />}>
+                <PickupVerificationPage />
+              </Suspense>
+            </DonorRoute>
+          }
+        />
+        <Route
+          path="admin"
+          element={
+            <AdminRoute>
+              <Suspense fallback={<LoadingFallback />}>
+                <AdminDashboardPage />
+              </Suspense>
+            </AdminRoute>
+          }
+        />
       </Route>
 
       <Route

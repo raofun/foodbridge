@@ -5,6 +5,7 @@ import {
   getMyClaims,
   cancelClaim,
   updateClaim,
+  deleteClaim,
   getListingClaims,
 } from '../controllers/claimController.js';
 
@@ -18,6 +19,9 @@ router.put('/:id', requireAuth, updateClaim);
 
 // Receiver / Volunteer: cancel a claim
 router.post('/:id/cancel', requireAuth, cancelClaim);
+
+// Receiver / Volunteer: permanently delete a claim (e.g. cancelled record)
+router.delete('/:id', requireAuth, deleteClaim);
 
 // Receiver / Volunteer: create a claim on a listing
 router.post('/listing/:id', requireAuth, createClaim);

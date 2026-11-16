@@ -1011,6 +1011,20 @@
   color: #ffffff;
 }
 
+.btn-card-action.delete {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #f87171;
+  font-weight: 700;
+}
+
+.btn-card-action.delete:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.28);
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
 .btn-card-action:disabled {
   opacity: 0.5;
   cursor: not-allowed;
