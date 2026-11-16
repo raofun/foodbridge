@@ -18,8 +18,6 @@
 | Component | Platform | Live URL | Health / Status |
 | :--- | :--- | :--- | :--- |
 | **Frontend Web App** | **Vercel** | [https://foodbridge-up.vercel.app/](https://foodbridge-up.vercel.app/) | Active (Production SPA) |
-| **Backend REST API** | **Render** | [https://foodbridge-api-sa2i.onrender.com](https://foodbridge-api-sa2i.onrender.com) | Active (`/api/health`) |
-| **Default Admin** | Platform-wide | `admin@foodbridge.org` / `Admin@FoodBridge2026!` | Route: `/admin` |
 
 ---
 
@@ -371,14 +369,6 @@ Open **`http://localhost:5173`** in your browser.
 
 ---
 
-## Pre-Defined Administrator Account
-
-On server startup, if no administrator exists in the database, FoodBridge automatically initializes a default admin:
-
-- **Email**: `admin@foodbridge.org`
-- **Password**: `Admin@FoodBridge2026!`
-- **Role**: `admin`
-
 Log in at `/login` and navigate to **`/admin`** to access the Control Center.
 
 ---
@@ -397,9 +387,7 @@ Log in at `/login` and navigate to **`/admin`** to access the Control Center.
 | `MONGODB_URI` | Required | MongoDB Atlas connection string | `mongodb+srv://...` |
 | `JWT_SECRET` | Required | Secret key for signing JWTs and HMAC hashes (min 32 chars) | `fb_sec_...` |
 | `GOOGLE_CLIENT_ID` | Optional | Google OAuth 2.0 Web Client ID | `484382...apps.googleusercontent.com` |
-| `DEFAULT_ADMIN_NAME` | Optional | Auto-seeded admin display name | `System Administrator` |
-| `DEFAULT_ADMIN_EMAIL` | Optional | Auto-seeded admin login email | `admin@foodbridge.org` |
-| `DEFAULT_ADMIN_PASSWORD` | Optional | Auto-seeded admin initial password | `Admin@FoodBridge2026!` |
+
 
 ### 2. Frontend on Vercel (`foodbridge`)
 - **Framework Preset**: Vite
@@ -407,7 +395,3 @@ Log in at `/login` and navigate to **`/admin`** to access the Control Center.
 - **Build Command**: `npm --prefix client run build`
 - **Output Directory**: `client/dist`
 
-| Variable | Required | Description | Production Value |
-| :--- | :---: | :--- | :--- |
-| `VITE_API_BASE_URL` | Required | Backend API endpoint URL | `https://foodbridge-api-sa2i.onrender.com/api` |
-| `VITE_GOOGLE_CLIENT_ID` | Optional | Google OAuth Web Client ID for sign-in button | `484382...apps.googleusercontent.com` |
