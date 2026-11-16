@@ -116,9 +116,17 @@ export async function createClaim(req, res, next) {
     const populatedClaim = await Claim.findById(claim._id)
       .populate({
         path: 'listing',
-        select: 'foodName photoUrl pickupLocation pickupOpensAt pickupClosesAt pickupDeadline status donor category',
+        select: 'foodName photoUrl pickupLocation pickupOpensAt pickupClosesAt pickupDeadline status donor category quantity claimedQuantity portionUnit foodCondition storageDetails',
         populate: { path: 'donor', select: 'name email role' },
-      });
+      })
+      .lean();
+
+    if (populatedClaim?.listing) {
+      const total = Number(populatedClaim.listing.quantity) || 0;
+      const claimedQty = Number(populatedClaim.listing.claimedQuantity) || 0;
+      populatedClaim.listing.claimedQuantity = claimedQty;
+      populatedClaim.listing.remainingQuantity = Math.max(0, total - claimedQty);
+    }
 
     return res.status(201).json({
       message: 'Food portion reserved successfully!',
@@ -152,12 +160,22 @@ export async function getMyClaims(req, res, next) {
       .sort({ createdAt: -1 })
       .populate({
         path: 'listing',
-        select: 'foodName description photoUrl pickupLocation pickupOpensAt pickupClosesAt pickupDeadline category storageDetails foodCondition status quantity claimedQuantity donor',
+        select: 'foodName description photoUrl pickupLocation pickupOpensAt pickupClosesAt pickupDeadline category storageDetails foodCondition status quantity claimedQuantity portionUnit donor',
         populate: { path: 'donor', select: 'name email role' },
       })
       .lean();
 
-    return res.json({ claims });
+    const enrichedClaims = claims.map((c) => {
+      if (c.listing) {
+        const total = Number(c.listing.quantity) || 0;
+        const claimed = Number(c.listing.claimedQuantity) || 0;
+        c.listing.claimedQuantity = claimed;
+        c.listing.remainingQuantity = Math.max(0, total - claimed);
+      }
+      return c;
+    });
+
+    return res.json({ claims: enrichedClaims });
   } catch (error) {
     next(error);
   }
@@ -197,9 +215,31 @@ export async function cancelClaim(req, res, next) {
       await listing.save();
     }
 
+    const populatedClaim = await Claim.findById(claim._id)
+      .populate({
+        path: 'listing',
+        select: 'foodName description photoUrl pickupLocation pickupOpensAt pickupClosesAt pickupDeadline category storageDetails foodCondition status quantity claimedQuantity portionUnit donor',
+        populate: { path: 'donor', select: 'name email role' },
+      })
+      .lean();
+
+    if (populatedClaim?.listing) {
+      const total = Number(populatedClaim.listing.quantity) || 0;
+      const claimed = Number(populatedClaim.listing.claimedQuantity) || 0;
+      populatedClaim.listing.claimedQuantity = claimed;
+      populatedClaim.listing.remainingQuantity = Math.max(0, total - claimed);
+    }
+
     return res.json({
       message: 'Reservation cancelled successfully. Food portion returned to community.',
-      claim,
+      claim: populatedClaim || claim,
+      listingSummary: listing ? {
+        _id: listing._id,
+        status: listing.status,
+        quantity: listing.quantity,
+        claimedQuantity: listing.claimedQuantity,
+        remainingQuantity: Math.max(0, listing.quantity - (listing.claimedQuantity || 0)),
+      } : null,
     });
   } catch (error) {
     next(error);
@@ -331,10 +371,17 @@ export async function updateClaim(req, res, next) {
     const populatedClaim = await Claim.findById(claim._id)
       .populate({
         path: 'listing',
-        select: 'foodName description photoUrl pickupLocation pickupOpensAt pickupClosesAt pickupDeadline category storageDetails foodCondition status quantity claimedQuantity donor',
+        select: 'foodName description photoUrl pickupLocation pickupOpensAt pickupClosesAt pickupDeadline category storageDetails foodCondition status quantity claimedQuantity portionUnit donor',
         populate: { path: 'donor', select: 'name email role' },
       })
       .lean();
+
+    if (populatedClaim?.listing) {
+      const total = Number(populatedClaim.listing.quantity) || 0;
+      const claimedQty = Number(populatedClaim.listing.claimedQuantity) || 0;
+      populatedClaim.listing.claimedQuantity = claimedQty;
+      populatedClaim.listing.remainingQuantity = Math.max(0, total - claimedQty);
+    }
 
     return res.json({
       message: 'Reservation updated successfully!',

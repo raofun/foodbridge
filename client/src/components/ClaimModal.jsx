@@ -345,6 +345,21 @@ export default function ClaimModal({ listing, onClose, onClaimSuccess }) {
       });
 
       setConfirmedClaim(response.claim);
+
+      // Dispatch global real-time event so all cards across all views update their dynamic count left
+      window.dispatchEvent(
+        new CustomEvent('foodbridge:reservation-updated', {
+          detail: {
+            claimId: response.claim?._id,
+            listingId: response.listing?._id || listing._id,
+            claimedQuantity: response.listing?.claimedQuantity,
+            remainingQuantity: response.listing?.remainingQuantity,
+            status: response.listing?.status,
+            newClaim: response.claim,
+          },
+        })
+      );
+
       if (onClaimSuccess) {
         onClaimSuccess(response);
       }

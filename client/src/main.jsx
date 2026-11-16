@@ -39,23 +39,42 @@ class ErrorBoundary extends React.Component {
           <p style={{ color: '#94a3b8', maxWidth: '420px', fontSize: '14px', marginBottom: '24px' }}>
             {this.state.error?.message || 'An unexpected error occurred while rendering the page.'}
           </p>
-          <button
-            onClick={() => {
-              try { localStorage.clear(); } catch {}
-              window.location.href = '/login';
-            }}
-            style={{
-              backgroundColor: '#ff5e1a',
-              color: '#ffffff',
-              border: 'none',
-              padding: '12px 24px',
-              borderRadius: '9999px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            Reset Session & Reload
-          </button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button
+              type="button"
+              onClick={() => {
+                this.setState({ hasError: false, error: null });
+              }}
+              style={{
+                backgroundColor: '#10b981',
+                color: '#ffffff',
+                border: 'none',
+                padding: '10px 22px',
+                borderRadius: '9999px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Try Again
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                window.location.reload();
+              }}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                color: '#ffffff',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                padding: '10px 22px',
+                borderRadius: '9999px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Reload Page
+            </button>
+          </div>
         </div>
       );
     }

@@ -1,9 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   X,
-  MapPin,
   Clock,
-  HeartHandshake,
   AlertCircle,
   Loader2,
   Plus,
@@ -42,7 +40,9 @@ function getAvailableDates(listing) {
   const dates = [];
   const now = new Date();
   const deadline = listing?.pickupClosesAt || listing?.pickupDeadline;
-  const maxDate = deadline ? new Date(deadline) : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const maxDate = deadline && !isNaN(new Date(deadline).getTime())
+    ? new Date(deadline)
+    : new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   const current = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const end = new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate());
@@ -58,14 +58,22 @@ function getAvailableDates(listing) {
 
 function getTimeSlotsForDate(date, listing) {
   const slots = [];
-  const opens = listing?.pickupOpensAt ? new Date(listing.pickupOpensAt) : null;
-  const closes = listing?.pickupClosesAt ? new Date(listing.pickupClosesAt) : (listing?.pickupDeadline ? new Date(listing.pickupDeadline) : null);
+  if (!date || isNaN(new Date(date).getTime())) return slots;
+
+  const validDate = new Date(date);
+  const opens = listing?.pickupOpensAt && !isNaN(new Date(listing.pickupOpensAt).getTime())
+    ? new Date(listing.pickupOpensAt)
+    : null;
+  const rawClose = listing?.pickupClosesAt || listing?.pickupDeadline;
+  const closes = rawClose && !isNaN(new Date(rawClose).getTime())
+    ? new Date(rawClose)
+    : null;
   const now = new Date();
 
   for (let hour = 8; hour <= 22; hour++) {
     for (const minute of [0, 30]) {
       if (hour === 22 && minute > 0) continue;
-      const slotDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hour, minute, 0, 0);
+      const slotDate = new Date(validDate.getFullYear(), validDate.getMonth(), validDate.getDate(), hour, minute, 0, 0);
       const isPast = slotDate.getTime() < now.getTime() - 2 * 60 * 1000;
       const isBeforeOpen = opens && slotDate.getTime() < opens.getTime() - 5 * 60 * 1000;
       const isAfterClose = closes && slotDate.getTime() > closes.getTime();
@@ -89,10 +97,12 @@ function getTimeSlotsForDate(date, listing) {
 
 function getQuickTimes(listing) {
   const now = Date.now();
-  const opens = listing?.pickupOpensAt ? new Date(listing.pickupOpensAt).getTime() : now;
-  const closes = listing?.pickupClosesAt
-    ? new Date(listing.pickupClosesAt).getTime()
-    : (listing?.pickupDeadline ? new Date(listing.pickupDeadline).getTime() : now + 24 * 60 * 60 * 1000);
+  const rawOpen = listing?.pickupOpensAt;
+  const opens = rawOpen && !isNaN(new Date(rawOpen).getTime()) ? new Date(rawOpen).getTime() : now;
+  const rawClose = listing?.pickupClosesAt || listing?.pickupDeadline;
+  const closes = rawClose && !isNaN(new Date(rawClose).getTime())
+    ? new Date(rawClose).getTime()
+    : now + 24 * 60 * 60 * 1000;
 
   const presets = [];
 
@@ -117,18 +127,27 @@ function getQuickTimes(listing) {
 export default function EditClaimModal({ claim, onClose, onUpdated }) {
   if (!claim) return null;
 
-  const listing = claim.listing || {};
-  const currentClaimQuantity = claim.quantity || 1;
-  const remainingInListing = Math.max(0, (listing.quantity || 0) - (listing.claimedQuantity || 0));
+  const initialListing = (typeof claim.listing === 'object' && claim.listing) ? claim.listing : {};
+  const [liveListing, setLiveListing] = useState(initialListing);
+  const [fetchingStock, setFetchingStock] = useState(false);
+
+  const currentClaimQuantity = Number(claim.quantity) || 1;
+  const listingTotal = Number(liveListing.quantity || initialListing.quantity || 1);
+  const listingClaimed = liveListing.claimedQuantity !== undefined
+    ? Number(liveListing.claimedQuantity)
+    : Number(initialListing.claimedQuantity || 0);
+  const remainingInListing = Math.max(0, listingTotal - listingClaimed);
   // User can keep current quantity, reduce to 1, or increase up to (current + remaining in listing)
-  const maxAllowedQuantity = currentClaimQuantity + remainingInListing;
+  const maxAllowedQuantity = Math.max(1, currentClaimQuantity + remainingInListing);
 
   const [quantity, setQuantity] = useState(currentClaimQuantity);
   const [recipientName, setRecipientName] = useState(claim.recipientName || '');
   const [contactPhone, setContactPhone] = useState(claim.contactPhone || '');
-  const [estimatedPickupAt, setEstimatedPickupAt] = useState(
-    claim.estimatedPickupAt ? new Date(claim.estimatedPickupAt).toISOString() : ''
-  );
+  const [estimatedPickupAt, setEstimatedPickupAt] = useState(() => {
+    if (!claim.estimatedPickupAt) return '';
+    const d = new Date(claim.estimatedPickupAt);
+    return !isNaN(d.getTime()) ? d.toISOString() : '';
+  });
   const [peopleFed, setPeopleFed] = useState(
     claim.peopleFed !== null && claim.peopleFed !== undefined ? String(claim.peopleFed) : ''
   );
@@ -141,15 +160,40 @@ export default function EditClaimModal({ claim, onClose, onUpdated }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  // Fetch live fresh stock from server safely
+  useEffect(() => {
+    const listingId = initialListing._id || (typeof claim.listing === 'string' ? claim.listing : null);
+    if (!listingId) return;
+
+    let isMounted = true;
+    setFetchingStock(true);
+    apiRequest(`/listings/${listingId}`)
+      .then((data) => {
+        if (isMounted && data?.listing) {
+          setLiveListing(data.listing);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (isMounted) setFetchingStock(false);
+      });
+
+    return () => { isMounted = false; };
+  }, [initialListing?._id, claim.listing]);
+
   // Date time picker sub-modal state
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerSelectedDate, setPickerSelectedDate] = useState(() => {
-    return claim.estimatedPickupAt ? new Date(claim.estimatedPickupAt) : new Date();
+    if (claim.estimatedPickupAt) {
+      const d = new Date(claim.estimatedPickupAt);
+      if (!isNaN(d.getTime())) return d;
+    }
+    return new Date();
   });
 
-  const availableDates = useMemo(() => getAvailableDates(listing), [listing]);
-  const timeSlots = useMemo(() => getTimeSlotsForDate(pickerSelectedDate, listing), [pickerSelectedDate, listing]);
-  const quickTimes = useMemo(() => getQuickTimes(listing), [listing]);
+  const availableDates = useMemo(() => getAvailableDates(liveListing), [liveListing]);
+  const timeSlots = useMemo(() => getTimeSlotsForDate(pickerSelectedDate, liveListing), [pickerSelectedDate, liveListing]);
+  const quickTimes = useMemo(() => getQuickTimes(liveListing), [liveListing]);
 
   const handleSelectSlot = (isoString) => {
     setEstimatedPickupAt(isoString);
@@ -157,7 +201,9 @@ export default function EditClaimModal({ claim, onClose, onUpdated }) {
   };
 
   const handleSelectQuickTime = (date) => {
-    setEstimatedPickupAt(date.toISOString());
+    if (date && !isNaN(date.getTime())) {
+      setEstimatedPickupAt(date.toISOString());
+    }
   };
 
   const handleClearPickupTime = () => {
@@ -168,23 +214,24 @@ export default function EditClaimModal({ claim, onClose, onUpdated }) {
     e.preventDefault();
     setError('');
 
-    if (quantity < 1) {
-      setError('Portion quantity must be at least 1.');
+    const parsedQty = Number(quantity);
+    if (!Number.isInteger(parsedQty) || parsedQty < 1) {
+      setError('Portion quantity must be a whole number of at least 1.');
       return;
     }
-    if (quantity > maxAllowedQuantity) {
-      setError(`Cannot exceed ${maxAllowedQuantity} portions.`);
+    if (parsedQty > maxAllowedQuantity) {
+      setError(`Cannot exceed ${maxAllowedQuantity} portions. Only ${remainingInListing} additional portions are currently available.`);
       return;
     }
 
     setSaving(true);
     try {
       const payload = {
-        quantity: Number(quantity),
+        quantity: parsedQty,
         recipientName: recipientName.trim(),
         contactPhone: contactPhone.trim(),
         estimatedPickupAt: estimatedPickupAt || null,
-        peopleFed: peopleFed !== '' ? Number(peopleFed) : null,
+        peopleFed: peopleFed !== '' && !isNaN(Number(peopleFed)) ? Math.max(1, Number(peopleFed)) : null,
         hasContainers,
         reservationPurpose,
         receiverNotes: receiverNotes.trim(),
@@ -195,8 +242,22 @@ export default function EditClaimModal({ claim, onClose, onUpdated }) {
         body: payload,
       });
 
+      // Dispatch global real-time event so all cards across all views update their dynamic count left
+      window.dispatchEvent(
+        new CustomEvent('foodbridge:reservation-updated', {
+          detail: {
+            claimId: claim._id,
+            listingId: res.listingSummary?._id || liveListing._id,
+            claimedQuantity: res.listingSummary?.claimedQuantity,
+            remainingQuantity: res.listingSummary?.remainingQuantity,
+            status: res.listingSummary?.status,
+            updatedClaim: res.claim,
+          },
+        })
+      );
+
       if (onUpdated) {
-        onUpdated(res.claim, res.message || 'Reservation updated successfully!');
+        onUpdated(res.claim, res.message || 'Reservation updated successfully!', res.listingSummary);
       }
       onClose();
     } catch (err) {
@@ -205,6 +266,8 @@ export default function EditClaimModal({ claim, onClose, onUpdated }) {
       setSaving(false);
     }
   };
+
+  const portionUnit = liveListing.portionUnit || initialListing.portionUnit || 'portions';
 
   return (
     <div className="edit-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
@@ -216,9 +279,9 @@ export default function EditClaimModal({ claim, onClose, onUpdated }) {
               <Pencil size={12} />
               <span>EDIT ACTIVE RESERVATION</span>
             </div>
-            <h2 className="edit-modal-title">{listing.foodName || 'Food Reservation'}</h2>
+            <h2 className="edit-modal-title">{liveListing.foodName || initialListing.foodName || 'Food Reservation'}</h2>
             <p className="edit-modal-subtitle">
-              Donated by <strong>{listing.donor?.name || 'Community Donor'}</strong> • {listing.pickupLocation || 'Pickup location confirmed'}
+              Donated by <strong>{liveListing.donor?.name || initialListing.donor?.name || 'Community Donor'}</strong> • {liveListing.pickupLocation || initialListing.pickupLocation || 'Pickup location confirmed'}
             </p>
           </div>
           <button
@@ -241,12 +304,18 @@ export default function EditClaimModal({ claim, onClose, onUpdated }) {
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="edit-modal-form">
-          {/* Portion Stepper */}
+          {/* Portion Stepper & Live Stock Breakdown Inside Edit Option */}
           <div className="edit-form-section">
-            <label className="edit-section-label">
-              <UtensilsCrossed size={14} />
-              <span>Portion Quantity</span>
-            </label>
+            <div className="section-label-row">
+              <label className="edit-section-label">
+                <UtensilsCrossed size={14} />
+                <span>Portion Quantity (Increase / Decrease)</span>
+              </label>
+              <span className="live-stock-tag">
+                {fetchingStock ? 'Checking stock...' : `${remainingInListing} more left in donation`}
+              </span>
+            </div>
+
             <div className="edit-portion-row">
               <div className="edit-stepper">
                 <button
@@ -255,12 +324,13 @@ export default function EditClaimModal({ claim, onClose, onUpdated }) {
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                   disabled={quantity <= 1 || saving}
                   aria-label="Decrease portions"
+                  title="Decrease by 1 portion"
                 >
                   <Minus size={14} />
                 </button>
                 <span className="stepper-value">
                   <strong>{quantity}</strong>
-                  <span className="stepper-unit">{listing.portionUnit || 'portions'}</span>
+                  <span className="stepper-unit">{portionUnit}</span>
                 </span>
                 <button
                   type="button"
@@ -268,20 +338,74 @@ export default function EditClaimModal({ claim, onClose, onUpdated }) {
                   onClick={() => setQuantity((q) => Math.min(maxAllowedQuantity, q + 1))}
                   disabled={quantity >= maxAllowedQuantity || saving}
                   aria-label="Increase portions"
+                  title={quantity >= maxAllowedQuantity ? 'No more portions available' : 'Increase by 1 portion'}
                 >
                   <Plus size={14} />
                 </button>
               </div>
-              <div className="portion-stock-info">
-                <span>Total available: <strong>{maxAllowedQuantity}</strong> {listing.portionUnit || 'portions'}</span>
-                {quantity > currentClaimQuantity && (
-                  <span className="stock-delta plus">+{quantity - currentClaimQuantity} portions added</span>
+
+              {/* Quick Portions Selector Chips */}
+              <div className="edit-quick-chips">
+                <button
+                  type="button"
+                  className={`quick-chip-btn ${quantity === 1 ? 'active' : ''}`}
+                  onClick={() => setQuantity(1)}
+                  disabled={saving}
+                >
+                  Min (1)
+                </button>
+                {currentClaimQuantity > 1 && currentClaimQuantity <= maxAllowedQuantity && (
+                  <button
+                    type="button"
+                    className={`quick-chip-btn ${quantity === currentClaimQuantity ? 'active' : ''}`}
+                    onClick={() => setQuantity(currentClaimQuantity)}
+                    disabled={saving}
+                  >
+                    Current ({currentClaimQuantity})
+                  </button>
                 )}
-                {quantity < currentClaimQuantity && (
-                  <span className="stock-delta minus">-{currentClaimQuantity - quantity} portions released</span>
+                {maxAllowedQuantity > 1 && maxAllowedQuantity !== currentClaimQuantity && (
+                  <button
+                    type="button"
+                    className={`quick-chip-btn ${quantity === maxAllowedQuantity ? 'active' : ''}`}
+                    onClick={() => setQuantity(maxAllowedQuantity)}
+                    disabled={saving}
+                  >
+                    Max Available ({maxAllowedQuantity})
+                  </button>
                 )}
               </div>
             </div>
+
+            {/* Dynamic Calculation Helper Card */}
+            <div className="edit-stock-preview-card">
+              <div className="preview-stat-item">
+                <span className="stat-label">Your Current</span>
+                <span className="stat-val">{currentClaimQuantity} {portionUnit}</span>
+              </div>
+              <div className="preview-divider">→</div>
+              <div className="preview-stat-item highlight">
+                <span className="stat-label">New Reservation</span>
+                <span className="stat-val">{quantity} {portionUnit}</span>
+              </div>
+              <div className="preview-divider">|</div>
+              <div className="preview-stat-item">
+                <span className="stat-label">Donation Remaining</span>
+                <span className="stat-val dynamic-left">
+                  {Math.max(0, maxAllowedQuantity - quantity)} left
+                </span>
+              </div>
+            </div>
+
+            {quantity !== currentClaimQuantity && (
+              <div className={`stock-delta-banner ${quantity > currentClaimQuantity ? 'plus' : 'minus'}`}>
+                {quantity > currentClaimQuantity ? (
+                  <span>＋ Adding {quantity - currentClaimQuantity} portions to your reservation.</span>
+                ) : (
+                  <span>－ Releasing {currentClaimQuantity - quantity} portions back to community feed.</span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Estimated Pickup Time */}

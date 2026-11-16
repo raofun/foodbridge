@@ -270,6 +270,28 @@ export default function FoodInformationPage() {
     };
   }, [listingId, navigate, session?.token]);
 
+  // Real-time synchronization for dynamic count left
+  useEffect(() => {
+    const handleReservationUpdate = (e) => {
+      if (!e.detail?.listingId) return;
+      const { listingId: updatedListingId, remainingQuantity, claimedQuantity, status } = e.detail;
+      if (listingId && String(listingId) === String(updatedListingId)) {
+        setListing((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            ...(remainingQuantity !== undefined ? { remainingQuantity } : {}),
+            ...(claimedQuantity !== undefined ? { claimedQuantity } : {}),
+            ...(status ? { status } : {}),
+          };
+        });
+      }
+    };
+
+    window.addEventListener('foodbridge:reservation-updated', handleReservationUpdate);
+    return () => window.removeEventListener('foodbridge:reservation-updated', handleReservationUpdate);
+  }, [listingId]);
+
   const setQuickPrepTime = (offsetHours = 0) => {
     const target = new Date(Date.now() - offsetHours * 3600000);
     setField('preparedAt', toLocalDateTime(target));

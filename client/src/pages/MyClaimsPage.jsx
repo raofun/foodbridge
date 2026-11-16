@@ -13,7 +13,6 @@ import {
   UtensilsCrossed,
   Copy,
   ExternalLink,
-  ChevronRight,
   RotateCw,
   X,
   Pencil,
@@ -59,6 +58,34 @@ export default function MyClaimsPage() {
     fetchClaims();
   }, [fetchClaims]);
 
+  // Real-time synchronization across views/tabs
+  useEffect(() => {
+    const handleRemoteUpdate = (e) => {
+      if (!e.detail?.listingId) return;
+      const { listingId, claimedQuantity, remainingQuantity, status } = e.detail;
+      setClaims((prev) =>
+        prev.map((c) => {
+          const currentListingId = c.listing?._id || c.listing;
+          if (currentListingId && String(currentListingId) === String(listingId)) {
+            return {
+              ...c,
+              listing: {
+                ...(c.listing || {}),
+                ...(claimedQuantity !== undefined ? { claimedQuantity } : {}),
+                ...(remainingQuantity !== undefined ? { remainingQuantity } : {}),
+                ...(status ? { status } : {}),
+              },
+            };
+          }
+          return c;
+        })
+      );
+    };
+
+    window.addEventListener('foodbridge:reservation-updated', handleRemoteUpdate);
+    return () => window.removeEventListener('foodbridge:reservation-updated', handleRemoteUpdate);
+  }, []);
+
   const handleCopyLocation = (claimId, location) => {
     if (!location) return;
     navigator.clipboard.writeText(location);
@@ -73,10 +100,49 @@ export default function MyClaimsPage() {
     try {
       const res = await apiRequest(`/claims/${claimId}/cancel`, { method: 'POST' });
       setNotice(res.message || 'Reservation cancelled successfully. Portions returned to community.');
-      // Refresh claims list
+
+      const targetClaim = claims.find((c) => c._id === claimId);
+      const listingSummary = res.listingSummary;
+
       setClaims((prev) =>
-        prev.map((c) => (c._id === claimId ? { ...c, status: 'cancelled' } : c))
+        prev.map((c) => {
+          if (c._id === claimId) {
+            return {
+              ...c,
+              status: 'cancelled',
+              listing: {
+                ...(c.listing || {}),
+                ...(listingSummary || {}),
+                claimedQuantity:
+                  listingSummary?.claimedQuantity !== undefined
+                    ? listingSummary.claimedQuantity
+                    : Math.max(0, (c.listing?.claimedQuantity || 0) - c.quantity),
+                remainingQuantity:
+                  listingSummary?.remainingQuantity !== undefined
+                    ? listingSummary.remainingQuantity
+                    : Math.max(0, (c.listing?.quantity || 0) - Math.max(0, (c.listing?.claimedQuantity || 0) - c.quantity)),
+                status: listingSummary?.status || c.listing?.status,
+              },
+            };
+          }
+          return c;
+        })
       );
+
+      // Dispatch global event
+      window.dispatchEvent(
+        new CustomEvent('foodbridge:reservation-updated', {
+          detail: {
+            claimId,
+            listingId: targetClaim?.listing?._id || targetClaim?.listing,
+            claimedQuantity: listingSummary?.claimedQuantity,
+            remainingQuantity: listingSummary?.remainingQuantity,
+            status: listingSummary?.status,
+            cancelled: true,
+          },
+        })
+      );
+
       setConfirmCancelModal(null);
     } catch (err) {
       setError(err.message || 'Failed to cancel reservation.');
@@ -150,7 +216,7 @@ export default function MyClaimsPage() {
               My Food <em>Reservations.</em>
             </h1>
             <p>
-              Track your scheduled surplus food pickups, update portions or collection times, review location directions, or release portions if your plans change.
+              Track your scheduled surplus food pickups, dynamically adjust reserved portions, view live remaining stock, and access pickup directions.
             </p>
           </div>
           <Link to="/" className="btn-hero-explore">
@@ -339,6 +405,15 @@ export default function MyClaimsPage() {
             const isReserved = claim.status === 'reserved';
             const pickupCloses = listing.pickupClosesAt || listing.pickupDeadline;
 
+            // Accurate Dynamic stock calculations
+            const totalListingQty = Number(listing.quantity) || 1;
+            const claimedListingQty = Number(listing.claimedQuantity) || 0;
+            const remainingInListing = listing.remainingQuantity !== undefined
+              ? Number(listing.remainingQuantity)
+              : Math.max(0, totalListingQty - claimedListingQty);
+            const isListingFullyClaimed = listing.status === 'claimed' || remainingInListing <= 0;
+            const pctClaimed = Math.min(100, Math.round((claimedListingQty / Math.max(1, totalListingQty)) * 100));
+
             return (
               <article className={`claim-card ${isReserved ? 'active' : 'cancelled'}`} key={claim._id}>
                 {/* Media Image & Status Badges */}
@@ -366,34 +441,78 @@ export default function MyClaimsPage() {
                     </p>
                   </div>
 
-                  {/* Quantity and Condition Highlights */}
+                  {/* Quantity and Dynamic Count Left Highlights */}
                   <div className="claim-portion-highlight">
-                    <span className="portion-badge">
+                    <span className="portion-badge user-portion">
+                      <UtensilsCrossed size={12} />
                       <strong>{claim.quantity}</strong> {claim.portionUnit || 'portions'} reserved
                     </span>
+
+                    <span
+                      className={`portion-badge listing-stock ${
+                        isListingFullyClaimed ? 'fully-claimed' : remainingInListing <= 3 ? 'low-stock' : 'in-stock'
+                      }`}
+                      title={`${claimedListingQty} of ${totalListingQty} portions claimed across community`}
+                    >
+                      <Sparkles size={11} />
+                      <span>
+                        {isListingFullyClaimed
+                          ? `All ${totalListingQty} claimed (0 left)`
+                          : `${remainingInListing} of ${totalListingQty} ${claim.portionUnit || 'portions'} left`}
+                      </span>
+                    </span>
+
                     {listing.foodCondition && (
                       <span className="condition-pill">✳ {listing.foodCondition}</span>
                     )}
                   </div>
 
+                  {/* Dynamic Stock Progress Bar */}
+                  <div className="claim-stock-progress-wrap" title={`${claimedListingQty} of ${totalListingQty} claimed`}>
+                    <div className="claim-stock-progress-track">
+                      <div
+                        className={`claim-stock-progress-fill ${isListingFullyClaimed ? 'full' : 'partial'}`}
+                        style={{ width: `${pctClaimed}%` }}
+                      />
+                    </div>
+                    <div className="claim-stock-progress-labels">
+                      <span>Donation: {claimedListingQty} of {totalListingQty} claimed</span>
+                      <span className="stock-remaining-label">
+                        <strong>{remainingInListing}</strong> {claim.portionUnit || 'portions'} left
+                      </span>
+                    </div>
+                  </div>
+
                   {/* Meta Details List */}
                   <div className="claim-card-meta-list">
-                    {/* Location */}
+                    {/* Location & Directions */}
                     <div className="meta-row">
                       <MapPin size={14} className="meta-icon loc" />
                       <span className="meta-text" title={listing.pickupLocation}>
                         {listing.pickupLocation || 'Pickup location confirmed with donor'}
                       </span>
                       {listing.pickupLocation && (
-                        <button
-                          type="button"
-                          className="btn-copy-address"
-                          onClick={() => handleCopyLocation(claim._id, listing.pickupLocation)}
-                          title="Copy pickup address"
-                        >
-                          <Copy size={11} />
-                          <span>{copiedId === claim._id ? 'Copied!' : 'Copy'}</span>
-                        </button>
+                        <div className="meta-loc-actions">
+                          <button
+                            type="button"
+                            className="btn-copy-address"
+                            onClick={() => handleCopyLocation(claim._id, listing.pickupLocation)}
+                            title="Copy pickup address"
+                          >
+                            <Copy size={11} />
+                            <span>{copiedId === claim._id ? 'Copied!' : 'Copy'}</span>
+                          </button>
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(listing.pickupLocation)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-map-link"
+                            title="Open directions in Google Maps"
+                          >
+                            <ExternalLink size={11} />
+                            <span>Map</span>
+                          </a>
+                        </div>
                       )}
                     </div>
 
@@ -473,7 +592,7 @@ export default function MyClaimsPage() {
                           title="Edit reservation portions or pickup details"
                         >
                           <Pencil size={13} />
-                          <span>Edit</span>
+                          <span>Edit Details</span>
                         </button>
 
                         <button
@@ -501,9 +620,31 @@ export default function MyClaimsPage() {
         <EditClaimModal
           claim={editingClaim}
           onClose={() => setEditingClaim(null)}
-          onUpdated={(updatedClaim, msg) => {
+          onUpdated={(updatedClaim, msg, listingSummary) => {
             setClaims((prev) =>
-              prev.map((c) => (c._id === updatedClaim._id ? updatedClaim : c))
+              prev.map((c) => {
+                if (c._id === updatedClaim._id) {
+                  return {
+                    ...c,
+                    ...updatedClaim,
+                    listing: {
+                      ...(c.listing || {}),
+                      ...(updatedClaim.listing || {}),
+                      ...(listingSummary || {}),
+                      claimedQuantity:
+                        listingSummary?.claimedQuantity !== undefined
+                          ? listingSummary.claimedQuantity
+                          : updatedClaim.listing?.claimedQuantity,
+                      remainingQuantity:
+                        listingSummary?.remainingQuantity !== undefined
+                          ? listingSummary.remainingQuantity
+                          : updatedClaim.listing?.remainingQuantity,
+                      status: listingSummary?.status || updatedClaim.listing?.status,
+                    },
+                  };
+                }
+                return c;
+              })
             );
             setNotice(msg || 'Reservation updated successfully!');
           }}
